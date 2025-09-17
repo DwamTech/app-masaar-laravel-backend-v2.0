@@ -41,6 +41,7 @@ class User extends Authenticatable
         'password',
         'phone',
         'governorate',
+        'city',
         'user_type',
         'is_approved',
         'the_best',

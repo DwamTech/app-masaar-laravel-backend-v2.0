@@ -41,6 +41,7 @@ class UserController extends Controller
             'password' => 'required|string|min:6',
             'phone' => 'required|string|max:20|unique:users,phone',
             'governorate' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
             'user_type' => 'required|string',
         ]);
 
@@ -50,6 +51,7 @@ class UserController extends Controller
             'password' => Hash::make($validated['password']),
             'phone' => $validated['phone'],
             'governorate' => $validated['governorate'] ?? null,
+            'city' => $validated['city'] ?? null,
             'user_type' => $validated['user_type'],
         ]);
 
@@ -75,6 +77,7 @@ class UserController extends Controller
             'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
             'phone' => 'sometimes|required|string|max:20|unique:users,phone,' . $user->id,
             'governorate' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
             'user_type' => 'sometimes|required|string',
             'is_approved' => 'sometimes|in:0,1',
             'the_best' => 'sometimes|in:0,1',
