@@ -17,6 +17,7 @@ use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\CarServiceOrderController;
+use App\Http\Controllers\DeliveryRequestController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\AppSettingController;
@@ -143,6 +144,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/car-orders/{id}/offer', [CarServiceOrderController::class, 'offer']);
     Route::post('/car-orders/{order_id}/offer/{offer_id}/accept', [CarServiceOrderController::class, 'acceptOffer']);
     Route::patch('/car-rental-office-detail/{id}/availability', [CarRentalOfficesDetailController::class, 'updateAvailability']);
+
+    // Delivery Service Routes
+    Route::prefix('delivery')->group(function () {
+        // Client Routes
+        Route::post('/requests', [DeliveryRequestController::class, 'store']); // Create delivery request
+        Route::get('/requests', [DeliveryRequestController::class, 'index']); // Get user's delivery requests
+        Route::get('/requests/{id}', [DeliveryRequestController::class, 'show']); // Get specific delivery request
+        Route::patch('/requests/{id}/cancel', [DeliveryRequestController::class, 'cancel']); // Cancel delivery request
+        
+        // Driver Routes
+        Route::get('/available-requests', [DeliveryRequestController::class, 'availableRequests']); // Get available requests for drivers
+        Route::post('/requests/{id}/offer', [DeliveryRequestController::class, 'submitOffer']); // Submit offer for delivery
+        Route::get('/my-offers', [DeliveryRequestController::class, 'myOffers']); // Get driver's offers
+        
+        // Offer Management
+        Route::post('/requests/{deliveryRequestId}/offers/{offerId}/accept', [DeliveryRequestController::class, 'acceptOffer']); // Accept driver offer
+        Route::get('/requests/{id}/offers', [DeliveryRequestController::class, 'getOffers']); // Get offers for request
+        
+        // Status Updates
+        Route::patch('/requests/{id}/status', [DeliveryRequestController::class, 'updateStatus']); // Update delivery status
+        Route::get('/requests/{id}/status-history', [DeliveryRequestController::class, 'getStatusHistory']); // Get status history
+    });
 
     // Service Requests
     Route::post('/service-requests', [ServiceRequestController::class, 'store']);

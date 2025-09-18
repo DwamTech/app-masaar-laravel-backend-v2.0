@@ -1,0 +1,29 @@
+{
+  "trip_type": "one_way",
+  "delivery_time": "2025-12-25 14:30:00",
+  "car_category": "economy",
+  "payment_method": "cash",
+  "destinations": [
+    {
+      "order": 1,
+      "latitude": 24.7136,
+      "longitude": 46.6753,
+      "address": "الرياض، المملكة العربية السعودية",
+      "location_name": "نقطة الاستلام",
+      "contact_name": "أحمد محمد",
+      "contact_phone": "+966501234567",
+      "is_pickup": true
+    },
+    {
+      "order": 2,
+      "latitude": 24.7500,
+      "longitude": 46.7000,
+      "address": "شارع الملك فهد، الرياض",
+      "location_name": "نقطة التسليم",
+      "contact_name": "سارة أحمد",
+      "contact_phone": "+966509876543",
+      "is_dropoff": true
+    }
+  ],
+  "notes": "يرجى التعامل بحذر مع الطرود"
+}
