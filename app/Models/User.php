@@ -19,6 +19,7 @@ use App\Models\SecurityPermit;
 use App\Models\CarServiceOrder;
 use App\Models\Conversation; // <-- إضافة مهمة
 use App\Models\Message; // <-- إضافة مهمة
+use App\Models\Car; // <-- إضافة مهمة للسيارات
 
 use Illuminate\Database\Eloquent\Relations\HasMany;  // تأكد من أن هذا المسار صحيح
 use Illuminate\Database\Eloquent\Relations\HasOne;   // تأكد من أن هذا المسار صحيح
@@ -63,6 +64,8 @@ class User extends Authenticatable
         'password_reset_attempts',
         'is_email_verified',
         'account_active',
+        'rating',
+        'rating_count',
     ];
 
     /**
@@ -181,5 +184,28 @@ class User extends Authenticatable
     {
         // افترض أن جدول `orders` يحتوي على عمود `user_id`
         return $this->hasMany(Order::class, 'user_id');
+    }
+
+    /**
+     * علاقة للحصول على سيارات السائق من خلال car_rental
+     */
+    public function driverCars()
+    {
+        return $this->hasManyThrough(
+            Car::class,
+            CarRental::class,
+            'user_id', // Foreign key on car_rentals table
+            'car_rental_id', // Foreign key on cars table
+            'id', // Local key on users table
+            'id' // Local key on car_rentals table
+        );
+    }
+
+    /**
+     * الحصول على السيارة الأساسية للسائق (أول سيارة)
+     */
+    public function primaryCar()
+    {
+        return $this->driverCars()->first();
     }
 }

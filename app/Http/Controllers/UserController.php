@@ -209,4 +209,165 @@ class UserController extends Controller
             ]
         ]);
     }
+
+    /**
+     * الحصول على بيانات السائق الكاملة مع التقييم وبيانات السيارة
+     */
+    public function getDriverProfile($driverId)
+    {
+        $driver = User::where('user_type', 'driver')
+            ->with([
+                'carRental.driverDetail',
+                'driverCars' => function($query) {
+                    $query->first(); // الحصول على أول سيارة فقط
+                }
+            ])
+            ->find($driverId);
+
+        if (!$driver) {
+            return response()->json([
+                'status' => false,
+                'message' => 'السائق غير موجود'
+            ], 404);
+        }
+
+        $primaryCar = $driver->driverCars->first();
+
+        return response()->json([
+            'status' => true,
+            'driver' => [
+                'id' => $driver->id,
+                'name' => $driver->name,
+                'profile_image' => $driver->profile_image,
+                'rating' => $driver->rating,
+                'rating_count' => $driver->rating_count,
+                'phone' => $driver->phone,
+                'car_info' => $primaryCar ? [
+                    'car_type' => $primaryCar->car_type,
+                    'car_model' => $primaryCar->car_model,
+                    'car_color' => $primaryCar->car_color,
+                    'license_plate' => $primaryCar->car_plate_number,
+                ] : null,
+                'driver_details' => $driver->carRental?->driverDetail ? [
+                    'cost_per_km' => $driver->carRental->driverDetail->cost_per_km,
+                    'payment_methods' => $driver->carRental->driverDetail->payment_methods,
+                ] : null
+            ]
+        ]);
+    }
+
+    /**
+     * الحصول على قائمة السائقين المتاحين مع بياناتهم الكاملة
+     */
+    public function getAvailableDrivers(Request $request)
+    {
+        $validated = $request->validate([
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'radius' => 'nullable|numeric|min:1|max:100', // نطاق البحث بالكيلومتر
+        ]);
+
+        $query = User::where('user_type', 'driver')
+            ->where('is_approved', 1)
+            ->with([
+                'carRental.driverDetail',
+                'driverCars' => function($query) {
+                    $query->limit(1); // الحصول على أول سيارة فقط
+                }
+            ]);
+
+        // إضافة فلترة حسب الموقع إذا تم توفيره
+        if (isset($validated['latitude']) && isset($validated['longitude'])) {
+            $radius = $validated['radius'] ?? 10; // افتراضي 10 كم
+            $lat = $validated['latitude'];
+            $lng = $validated['longitude'];
+            
+            $query->whereRaw(
+                "(
+                    6371 * acos(
+                        cos(radians(?)) * cos(radians(latitude)) * 
+                        cos(radians(longitude) - radians(?)) + 
+                        sin(radians(?)) * sin(radians(latitude))
+                    )
+                ) <= ?",
+                [$lat, $lng, $lat, $radius]
+            );
+        }
+
+        $drivers = $query->get();
+
+        $driversData = $drivers->map(function ($driver) {
+            $primaryCar = $driver->driverCars->first();
+            
+            return [
+                'id' => $driver->id,
+                'name' => $driver->name,
+                'profile_image' => $driver->profile_image,
+                'rating' => $driver->rating,
+                'rating_count' => $driver->rating_count,
+                'phone' => $driver->phone,
+                'location' => [
+                    'latitude' => $driver->latitude,
+                    'longitude' => $driver->longitude,
+                    'current_address' => $driver->current_address,
+                ],
+                'car_info' => $primaryCar ? [
+                    'car_type' => $primaryCar->car_type,
+                    'car_model' => $primaryCar->car_model,
+                    'car_color' => $primaryCar->car_color,
+                    'license_plate' => $primaryCar->car_plate_number,
+                ] : null,
+                'driver_details' => $driver->carRental?->driverDetail ? [
+                    'cost_per_km' => $driver->carRental->driverDetail->cost_per_km,
+                    'payment_methods' => $driver->carRental->driverDetail->payment_methods,
+                ] : null
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'drivers' => $driversData,
+            'count' => $driversData->count()
+        ]);
+    }
+
+    /**
+     * تحديث تقييم السائق
+     */
+    public function updateDriverRating(Request $request, $driverId)
+    {
+        $validated = $request->validate([
+            'rating' => 'required|numeric|min:1|max:5',
+        ]);
+
+        $driver = User::where('user_type', 'driver')->find($driverId);
+        
+        if (!$driver) {
+            return response()->json([
+                'status' => false,
+                'message' => 'السائق غير موجود'
+            ], 404);
+        }
+
+        // حساب التقييم الجديد
+        $currentRating = $driver->rating;
+        $currentCount = $driver->rating_count;
+        $newRating = $validated['rating'];
+        
+        $totalRating = ($currentRating * $currentCount) + $newRating;
+        $newCount = $currentCount + 1;
+        $averageRating = $totalRating / $newCount;
+
+        $driver->update([
+            'rating' => round($averageRating, 2),
+            'rating_count' => $newCount
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تحديث التقييم بنجاح',
+            'new_rating' => $driver->rating,
+            'rating_count' => $driver->rating_count
+        ]);
+    }
 }
