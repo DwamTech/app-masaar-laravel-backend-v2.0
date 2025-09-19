@@ -150,4 +150,63 @@ class UserController extends Controller
             'message' => 'تم تغيير كلمة المرور بنجاح. يرجى تسجيل الدخول مرة أخرى.',
         ]);
     }
+
+    /**
+     * تحديث الموقع الجغرافي للمستخدم
+     */
+    public function updateLocation(Request $request)
+    {
+        $validated = $request->validate([
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'current_address' => 'nullable|string|max:500',
+            'location_sharing_enabled' => 'boolean'
+        ]);
+
+        $user = Auth::user();
+        
+        $user->update([
+            'latitude' => $validated['latitude'],
+            'longitude' => $validated['longitude'],
+            'current_address' => $validated['current_address'] ?? null,
+            'location_updated_at' => now(),
+            'location_sharing_enabled' => $validated['location_sharing_enabled'] ?? true
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تحديث الموقع بنجاح',
+            'location' => [
+                'latitude' => $user->latitude,
+                'longitude' => $user->longitude,
+                'current_address' => $user->current_address,
+                'location_updated_at' => $user->location_updated_at
+            ]
+        ]);
+    }
+
+    /**
+     * الحصول على الموقع الحالي للمستخدم
+     */
+    public function getLocation()
+    {
+        $user = Auth::user();
+        
+        if (!$user->location_sharing_enabled) {
+            return response()->json([
+                'status' => false,
+                'message' => 'مشاركة الموقع غير مفعلة'
+            ], 403);
+        }
+
+        return response()->json([
+            'status' => true,
+            'location' => [
+                'latitude' => $user->latitude,
+                'longitude' => $user->longitude,
+                'current_address' => $user->current_address,
+                'location_updated_at' => $user->location_updated_at
+            ]
+        ]);
+    }
 }

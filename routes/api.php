@@ -93,6 +93,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     Route::post('/change-password', [UserController::class, 'changePassword']);
+    Route::post('/update-location', [UserController::class, 'updateLocation']);
+    Route::get('/my-location', [UserController::class, 'getLocation']);
 
     // Properties
     Route::get('/properties', [PropertyController::class, 'index']);

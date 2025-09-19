@@ -498,10 +498,26 @@ class DeliveryRequestController extends Controller
                         $this->trySendNotification($client, 'delivery_request_created', 'تم إنشاء طلب التوصيل', 'تم إنشاء طلبك رقم #' . $deliveryRequest->id . ' بنجاح وهو في انتظار العروض');
                     }
                     
-                    // إشعار السائقين المتاحين
-                    $availableDrivers = User::where('user_type', 'driver')->where('is_available', true)->get();
-                    foreach ($availableDrivers as $availableDriver) {
-                        $this->trySendNotification($availableDriver, 'new_delivery_request', 'طلب توصيل جديد', 'يوجد طلب توصيل جديد متاح');
+                    // إشعار السائقين المتاحين من نفس المحافظة فقط
+                    $clientGovernorate = $client ? $client->governorate : null;
+                    if ($clientGovernorate) {
+                        $availableDrivers = User::where('user_type', 'driver')
+                            ->where('is_available', true)
+                            ->where('governorate', $clientGovernorate)
+                            ->get();
+                            
+                        foreach ($availableDrivers as $availableDriver) {
+                            $this->trySendNotification(
+                                $availableDriver, 
+                                'new_delivery_request', 
+                                'طلب توصيل جديد في منطقتك', 
+                                'يوجد طلب توصيل جديد متاح في ' . $clientGovernorate . ' - الطلب رقم #' . $deliveryRequest->id
+                            );
+                        }
+                        
+                        Log::info("Sent notifications to " . count($availableDrivers) . " drivers in governorate: {$clientGovernorate}");
+                    } else {
+                        Log::warning("Client governorate not set for delivery request #{$deliveryRequest->id}");
                     }
                     break;
 
@@ -598,18 +614,38 @@ class DeliveryRequestController extends Controller
      */
     public function availableRequests(Request $request)
     {
+        $driver = Auth::user();
+        
         $query = DeliveryRequest::query()
-            ->where('status', 'pending')
+            ->where('status', 'pending_offers')
             ->whereNull('driver_id');
+
+        // فلترة حسب المحافظة - إظهار الطلبات من نفس محافظة السائق فقط
+        if ($driver && $driver->governorate) {
+            $query->whereHas('client', function($q) use ($driver) {
+                $q->where('governorate', $driver->governorate);
+            });
+        }
 
         // فلترة حسب نوع الرحلة
         if ($request->has('trip_type')) {
             $query->where('trip_type', $request->trip_type);
         }
 
-        // فلترة حسب المنطقة (يمكن تطويرها لاحقاً)
-        if ($request->has('area')) {
-            // يمكن إضافة فلترة حسب المنطقة الجغرافية
+        // فلترة حسب المنطقة الجغرافية باستخدام الإحداثيات
+        if ($request->has('latitude') && $request->has('longitude') && $request->has('radius')) {
+            $lat = $request->latitude;
+            $lng = $request->longitude;
+            $radius = $request->radius; // بالكيلومتر
+            
+            $query->whereHas('client', function($q) use ($lat, $lng, $radius) {
+                $q->whereNotNull('latitude')
+                  ->whereNotNull('longitude')
+                  ->whereRaw(
+                      "(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) <= ?",
+                      [$lat, $lng, $lat, $radius]
+                  );
+            });
         }
 
         $availableRequests = $query->with([

@@ -42,6 +42,11 @@ class User extends Authenticatable
         'phone',
         'governorate',
         'city',
+        'latitude',
+        'longitude',
+        'current_address',
+        'location_updated_at',
+        'location_sharing_enabled',
         'user_type',
         'is_approved',
         'the_best',
@@ -90,6 +95,10 @@ class User extends Authenticatable
             'account_active' => 'boolean',
             'is_approved' => 'boolean',
             'the_best' => 'boolean',
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
+            'location_updated_at' => 'datetime',
+            'location_sharing_enabled' => 'boolean',
         ];
     }
 
