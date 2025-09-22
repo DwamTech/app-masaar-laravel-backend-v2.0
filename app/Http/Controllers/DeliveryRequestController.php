@@ -511,17 +511,31 @@ class DeliveryRequestController extends Controller
                         Log::warning("Client governorate not set, sending to all drivers");
                         $availableDrivers = User::where('user_type', 'driver')->get();
                     }
-                            
+                    
+                    Log::info("Found " . count($availableDrivers) . " drivers in governorate: {$clientGovernorate}");
+                    
+                    $notifiedDrivers = 0;
                     foreach ($availableDrivers as $availableDriver) {
-                        $this->trySendNotification(
-                            $availableDriver, 
-                            'new_delivery_request', 
-                            'طلب توصيل جديد في منطقتك', 
-                            'يوجد طلب توصيل جديد متاح في ' . $clientGovernorate . ' - الطلب رقم #' . $deliveryRequest->id
-                        );
+                        // التحقق من وجود device tokens نشطة
+                        $hasActiveTokens = DB::table('device_tokens')
+                            ->where('user_id', $availableDriver->id)
+                            ->where('is_enabled', 1)
+                            ->exists();
+                            
+                        if ($hasActiveTokens) {
+                            $this->trySendNotification(
+                                $availableDriver, 
+                                'new_delivery_request', 
+                                'طلب توصيل جديد في منطقتك', 
+                                'يوجد طلب توصيل جديد متاح في ' . $clientGovernorate . ' - الطلب رقم #' . $deliveryRequest->id
+                            );
+                            $notifiedDrivers++;
+                        } else {
+                            Log::warning("Driver {$availableDriver->name} (ID: {$availableDriver->id}) has no active device tokens");
+                        }
                     }
                     
-                    Log::info("Sent notifications to " . count($availableDrivers) . " drivers in governorate: {$clientGovernorate}");
+                    Log::info("Successfully notified {$notifiedDrivers} out of " . count($availableDrivers) . " drivers in governorate: {$clientGovernorate}");
                     break;
 
                 case 'new_offer':
