@@ -498,13 +498,19 @@ class DeliveryRequestController extends Controller
                         $this->trySendNotification($client, 'delivery_request_created', 'تم إنشاء طلب التوصيل', 'تم إنشاء طلبك رقم #' . $deliveryRequest->id . ' بنجاح وهو في انتظار العروض');
                     }
                     
-                    // إشعار السائقين المتاحين من نفس المحافظة فقط
+                    // إشعار السائقين من نفس المحافظة فقط
                     $clientGovernorate = $client ? $client->governorate : null;
+                    Log::info("Client governorate: {$clientGovernorate}");
+                    
                     if ($clientGovernorate) {
                         $availableDrivers = User::where('user_type', 'driver')
-                            ->where('is_available', true)
                             ->where('governorate', $clientGovernorate)
                             ->get();
+                    } else {
+                        // إذا لم تكن المحافظة محددة، أرسل لجميع السائقين
+                        Log::warning("Client governorate not set, sending to all drivers");
+                        $availableDrivers = User::where('user_type', 'driver')->get();
+                    }
                             
                         foreach ($availableDrivers as $availableDriver) {
                             $this->trySendNotification(
