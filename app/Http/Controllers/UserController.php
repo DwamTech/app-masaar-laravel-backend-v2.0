@@ -370,4 +370,36 @@ class UserController extends Controller
             'rating_count' => $driver->rating_count
         ]);
     }
+
+    /**
+     * تحديث حالة توفر السائق
+     */
+    public function updateAvailability(Request $request)
+    {
+        $validated = $request->validate([
+            'is_available' => 'required|boolean',
+        ]);
+
+        $user = Auth::user();
+        
+        // التحقق من أن المستخدم سائق
+        if ($user->user_type !== 'driver') {
+            return response()->json([
+                'status' => false,
+                'message' => 'هذه الخدمة متاحة للسائقين فقط'
+            ], 403);
+        }
+
+        // تحديث حالة التوفر
+        $user->update([
+            'is_available' => $validated['is_available']
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'success' => true,
+            'message' => 'تم تحديث حالة التوفر بنجاح',
+            'is_available' => $user->is_available
+        ]);
+    }
 }
