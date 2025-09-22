@@ -704,7 +704,7 @@ class DeliveryRequestController extends Controller
 
             // التحقق من صلاحية المستخدم للوصول إلى هذا الطلب
             $user = Auth::user();
-            if ($deliveryRequest->client_id !== $user->id && !$user->hasRole('admin')) {
+            if ($deliveryRequest->client_id !== $user->id) {
                 return response()->json([
                     'status' => false,
                     'message' => 'ليس لديك صلاحية للوصول إلى هذا الطلب'
@@ -714,15 +714,19 @@ class DeliveryRequestController extends Controller
             // تحديد الرسالة بناءً على حالة العروض
             $offersCount = $deliveryRequest->offers->count();
             $message = 'تم جلب البيانات بنجاح';
+            $lastMessage = null;
             
             if ($offersCount === 0) {
                 if ($deliveryRequest->status === 'pending_offers') {
-                    $message = 'لم يتم تقديم أي عروض على هذا الطلب بعد. يرجى الانتظار حتى يقوم السائقون بتقديم عروضهم.';
+                    $message = 'لم يتم تقديم أي عروض على هذا الطلب بعد';
+                    $lastMessage = 'لا توجد عروض متاحة في منطقتك حالياً. جاري البحث عن سائقين متاحين...';
                 } else {
-                    $message = 'لا توجد عروض متاحة لهذا الطلب.';
+                    $message = 'لا توجد عروض متاحة لهذا الطلب';
+                    $lastMessage = 'تم تغيير حالة الطلب ولا يمكن استقبال عروض جديدة';
                 }
             } else {
                 $message = "تم العثور على {$offersCount} عرض لهذا الطلب";
+                $lastMessage = "يوجد {$offersCount} عرض متاح للاختيار من بينها";
             }
 
             return response()->json([
@@ -733,7 +737,8 @@ class DeliveryRequestController extends Controller
                     'offers_count' => $offersCount,
                     'has_offers' => $offersCount > 0
                 ],
-                'message' => $message
+                'message' => $message,
+                'lastMessage' => $lastMessage
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching delivery request with offers: ' . $e->getMessage());
