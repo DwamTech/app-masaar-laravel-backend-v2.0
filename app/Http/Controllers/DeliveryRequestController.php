@@ -512,19 +512,16 @@ class DeliveryRequestController extends Controller
                         $availableDrivers = User::where('user_type', 'driver')->get();
                     }
                             
-                        foreach ($availableDrivers as $availableDriver) {
-                            $this->trySendNotification(
-                                $availableDriver, 
-                                'new_delivery_request', 
-                                'طلب توصيل جديد في منطقتك', 
-                                'يوجد طلب توصيل جديد متاح في ' . $clientGovernorate . ' - الطلب رقم #' . $deliveryRequest->id
-                            );
-                        }
-                        
-                        Log::info("Sent notifications to " . count($availableDrivers) . " drivers in governorate: {$clientGovernorate}");
-                    } else {
-                        Log::warning("Client governorate not set for delivery request #{$deliveryRequest->id}");
+                    foreach ($availableDrivers as $availableDriver) {
+                        $this->trySendNotification(
+                            $availableDriver, 
+                            'new_delivery_request', 
+                            'طلب توصيل جديد في منطقتك', 
+                            'يوجد طلب توصيل جديد متاح في ' . $clientGovernorate . ' - الطلب رقم #' . $deliveryRequest->id
+                        );
                     }
+                    
+                    Log::info("Sent notifications to " . count($availableDrivers) . " drivers in governorate: {$clientGovernorate}");
                     break;
 
                 case 'new_offer':
