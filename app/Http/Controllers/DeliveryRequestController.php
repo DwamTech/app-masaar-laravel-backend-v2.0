@@ -681,6 +681,55 @@ class DeliveryRequestController extends Controller
     }
 
     /**
+     * جلب تفاصيل طلب التوصيل مع العروض المرسلة
+     */
+    public function getDeliveryRequestWithOffers($deliveryRequestId)
+    {
+        try {
+            $deliveryRequest = DeliveryRequest::with([
+                'client',
+                'driver',
+                'destinations',
+                'offers' => function($query) {
+                    $query->with('driver')->orderBy('created_at', 'desc');
+                }
+            ])->find($deliveryRequestId);
+
+            if (!$deliveryRequest) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'لم يتم العثور على الطلب المحدد'
+                ], 404);
+            }
+
+            // التحقق من صلاحية المستخدم للوصول إلى هذا الطلب
+            $user = Auth::user();
+            if ($deliveryRequest->client_id !== $user->id && !$user->hasRole('admin')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'ليس لديك صلاحية للوصول إلى هذا الطلب'
+                ], 403);
+            }
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'delivery_request' => $deliveryRequest,
+                    'offers' => $deliveryRequest->offers
+                ],
+                'message' => 'تم جلب البيانات بنجاح'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching delivery request with offers: ' . $e->getMessage());
+            
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ أثناء جلب البيانات'
+            ], 500);
+        }
+    }
+
+    /**
      * عرض تاريخ حالات طلب التوصيل
      */
     public function getStatusHistory($deliveryRequestId)

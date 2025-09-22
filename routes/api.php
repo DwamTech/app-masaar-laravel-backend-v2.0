@@ -169,6 +169,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Offer Management
         Route::post('/requests/{deliveryRequestId}/offers/{offerId}/accept', [DeliveryRequestController::class, 'acceptOffer']); // Accept driver offer
         Route::get('/requests/{id}/offers', [DeliveryRequestController::class, 'getOffers']); // Get offers for request
+        Route::get('/requests/{id}/with-offers', [DeliveryRequestController::class, 'getDeliveryRequestWithOffers']); // Get delivery request with offers
         
         // Status Updates
         Route::patch('/requests/{id}/status', [DeliveryRequestController::class, 'updateStatus']); // Update delivery status
