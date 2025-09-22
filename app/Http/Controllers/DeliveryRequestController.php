@@ -711,20 +711,36 @@ class DeliveryRequestController extends Controller
                 ], 403);
             }
 
+            // تحديد الرسالة بناءً على حالة العروض
+            $offersCount = $deliveryRequest->offers->count();
+            $message = 'تم جلب البيانات بنجاح';
+            
+            if ($offersCount === 0) {
+                if ($deliveryRequest->status === 'pending_offers') {
+                    $message = 'لم يتم تقديم أي عروض على هذا الطلب بعد. يرجى الانتظار حتى يقوم السائقون بتقديم عروضهم.';
+                } else {
+                    $message = 'لا توجد عروض متاحة لهذا الطلب.';
+                }
+            } else {
+                $message = "تم العثور على {$offersCount} عرض لهذا الطلب";
+            }
+
             return response()->json([
                 'status' => true,
                 'data' => [
                     'delivery_request' => $deliveryRequest,
-                    'offers' => $deliveryRequest->offers
+                    'offers' => $deliveryRequest->offers,
+                    'offers_count' => $offersCount,
+                    'has_offers' => $offersCount > 0
                 ],
-                'message' => 'تم جلب البيانات بنجاح'
+                'message' => $message
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching delivery request with offers: ' . $e->getMessage());
             
             return response()->json([
                 'status' => false,
-                'message' => 'حدث خطأ أثناء جلب البيانات'
+                'message' => 'حدث خطأ في الاتصال بالخادم يرجي التحقق من اتصال الإنترنت والمحاولة مرة أخري'
             ], 500);
         }
     }
@@ -744,6 +760,75 @@ class DeliveryRequestController extends Controller
         return response()->json([
             'status' => true,
             'status_history' => $statusHistory
+        ]);
+    }
+
+    /**
+     * عرض العروض المقدمة من السائق (طلباته)
+     */
+    public function myOffers(Request $request)
+    {
+        $driver = Auth::user();
+        
+        $offers = DeliveryOffer::where('driver_id', $driver->id)
+            ->with([
+                'deliveryRequest' => function($query) {
+                    $query->with(['client', 'destinations']);
+                },
+                'driver'
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        // تحويل البيانات لتتوافق مع التطبيق
+        $requests = $offers->getCollection()->map(function($offer) {
+            $deliveryRequest = $offer->deliveryRequest;
+            $deliveryRequest->offer_status = $offer->status;
+            $deliveryRequest->offered_price = $offer->offered_price;
+            $deliveryRequest->offer_id = $offer->id;
+            return $deliveryRequest;
+        });
+
+        return response()->json([
+            'status' => true,
+            'data' => $requests,
+            'pagination' => [
+                'current_page' => $offers->currentPage(),
+                'last_page' => $offers->lastPage(),
+                'per_page' => $offers->perPage(),
+                'total' => $offers->total()
+            ]
+        ]);
+    }
+
+    /**
+     * عرض الطلبات المنتهية للسائق
+     */
+    public function completedRequests(Request $request)
+    {
+        $driver = Auth::user();
+        
+        $completedRequests = DeliveryRequest::where('driver_id', $driver->id)
+            ->whereIn('status', [
+                DeliveryRequest::STATUS_TRIP_COMPLETED,
+                DeliveryRequest::STATUS_CANCELLED
+            ])
+            ->with(['client', 'destinations', 'offers' => function($query) use ($driver) {
+                $query->where('driver_id', $driver->id);
+            }])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(15);
+
+        return response()->json([
+            'status' => true,
+            'success' => true,
+            'data' => $completedRequests->items(),
+            'pagination' => [
+                'current_page' => $completedRequests->currentPage(),
+                'last_page' => $completedRequests->lastPage(),
+                'per_page' => $completedRequests->perPage(),
+                'total' => $completedRequests->total()
+            ]
         ]);
     }
 }

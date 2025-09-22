@@ -161,10 +161,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/requests/{id}', [DeliveryRequestController::class, 'show']); // Get specific delivery request
         Route::patch('/requests/{id}/cancel', [DeliveryRequestController::class, 'cancel']); // Cancel delivery request
         
-        // Driver Routes
-        Route::get('/available-requests', [DeliveryRequestController::class, 'availableRequests']); // Get available requests for drivers
-        Route::post('/requests/{id}/offer', [DeliveryRequestController::class, 'submitOffer']); // Submit offer for delivery
-        Route::get('/my-offers', [DeliveryRequestController::class, 'myOffers']); // Get driver's offers
+        // Driver-specific routes
+    Route::get('/available-requests', [DeliveryRequestController::class, 'availableRequests']); // Get available requests for drivers
+    Route::post('/requests/{id}/offer', [DeliveryRequestController::class, 'submitOffer']); // Submit offer for delivery
+    Route::get('/my-offers', [DeliveryRequestController::class, 'myOffers']); // Get driver's offers
+    Route::get('/completed-requests', [DeliveryRequestController::class, 'completedRequests']); // Get driver's completed requests
         
         // Offer Management
         Route::post('/requests/{deliveryRequestId}/offers/{offerId}/accept', [DeliveryRequestController::class, 'acceptOffer']); // Accept driver offer
