@@ -101,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/drivers/{driverId}/profile', [UserController::class, 'getDriverProfile']);
     Route::post('/drivers/{driverId}/rating', [UserController::class, 'updateDriverRating']);
     Route::post('/driver/update-availability', [UserController::class, 'updateAvailability']);
+    Route::post('/driver/update-location', [UserController::class, 'updateDriverLocation']);
 
     // Properties
     Route::get('/properties', [PropertyController::class, 'index']);

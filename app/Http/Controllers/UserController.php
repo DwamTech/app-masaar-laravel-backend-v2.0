@@ -402,4 +402,54 @@ class UserController extends Controller
             'is_available' => $user->is_available
         ]);
     }
+
+    /**
+     * تحديث موقع السائق مع المحافظة والمدينة
+     */
+    public function updateDriverLocation(Request $request)
+    {
+        $validated = $request->validate([
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'governorate' => 'nullable|string|max:100',
+            'city' => 'nullable|string|max:100',
+            'current_address' => 'nullable|string|max:500',
+            'location_sharing_enabled' => 'boolean'
+        ]);
+
+        $user = Auth::user();
+        
+        // التحقق من أن المستخدم سائق
+        if ($user->user_type !== 'driver') {
+            return response()->json([
+                'status' => false,
+                'message' => 'هذه الخدمة متاحة للسائقين فقط'
+            ], 403);
+        }
+
+        // تحديث بيانات الموقع
+        $user->update([
+            'latitude' => $validated['latitude'],
+            'longitude' => $validated['longitude'],
+            'governorate' => $validated['governorate'] ?? $user->governorate,
+            'city' => $validated['city'] ?? $user->city,
+            'current_address' => $validated['current_address'] ?? null,
+            'location_updated_at' => now(),
+            'location_sharing_enabled' => $validated['location_sharing_enabled'] ?? true
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تحديث موقع السائق بنجاح',
+            'location' => [
+                'latitude' => $user->latitude,
+                'longitude' => $user->longitude,
+                'governorate' => $user->governorate,
+                'city' => $user->city,
+                'current_address' => $user->current_address,
+                'location_updated_at' => $user->location_updated_at,
+                'location_sharing_enabled' => $user->location_sharing_enabled
+            ]
+        ]);
+    }
 }
