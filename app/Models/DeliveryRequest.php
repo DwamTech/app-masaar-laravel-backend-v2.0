@@ -23,6 +23,7 @@ class DeliveryRequest extends Model
         'estimated_duration',
         'payment_method',
         'notes',
+        'governorate',
         'rejection_reason',
         'accepted_at',
         'rejected_at',

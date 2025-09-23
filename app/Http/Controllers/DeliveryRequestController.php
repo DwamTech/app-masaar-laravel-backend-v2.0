@@ -28,6 +28,7 @@ class DeliveryRequestController extends Controller
             'payment_method' => 'required|in:cash,bank_transfer,card',
             'price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
+            'governorate' => 'nullable|string|max:100',
             'destinations' => 'required|array|min:1',
             'destinations.*.location_name' => 'required|string|max:255',
             'destinations.*.latitude' => 'nullable|numeric|between:-90,90',
@@ -62,6 +63,7 @@ class DeliveryRequestController extends Controller
                 'payment_method' => $request->payment_method,
                 'price' => $request->price,
                 'notes' => $request->notes,
+                'governorate' => $request->governorate,
                 'status' => DeliveryRequest::STATUS_PENDING_OFFERS
             ]);
 
@@ -639,9 +641,7 @@ class DeliveryRequestController extends Controller
 
         // فلترة حسب المحافظة - إظهار الطلبات من نفس محافظة السائق فقط
         if ($driver && $driver->governorate) {
-            $query->whereHas('client', function($q) use ($driver) {
-                $q->where('governorate', $driver->governorate);
-            });
+            $query->where('governorate', $driver->governorate);
         }
 
         // فلترة حسب نوع الرحلة
