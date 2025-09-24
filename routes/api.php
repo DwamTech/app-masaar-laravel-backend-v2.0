@@ -11,6 +11,7 @@ use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SecurityPermitController;
+use App\Http\Controllers\Admin\AdminSecurityPermitController;
 use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\MenuSectionController;
 use App\Http\Controllers\MenuItemController;
@@ -122,10 +123,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
-    // Security Permits
+    // Security Permits - User Routes
+    Route::get('/security-permits/form-data', [SecurityPermitController::class, 'getFormData']);
     Route::post('/security-permits', [SecurityPermitController::class, 'store']);
-    Route::get('/my-security-permits', [SecurityPermitController::class, 'myPermits']);
-    Route::get('/all-security-permits', [SecurityPermitController::class, 'allPermits']);
+    Route::get('/security-permits/my', [SecurityPermitController::class, 'myPermits']);
+    Route::get('/security-permits/{id}', [SecurityPermitController::class, 'show']);
+    Route::put('/security-permits/{id}/payment-method', [SecurityPermitController::class, 'updatePaymentMethod']);
+    Route::delete('/security-permits/{id}', [SecurityPermitController::class, 'cancel']);
 
     // Restaurant Orders
     Route::post('/orders', [OrderController::class, 'store']);
@@ -300,8 +304,10 @@ Route::middleware('auth:sanctum')->group(function () {
 // ======= Admin Routes (extra) =======
 // ملاحظة: تم الإبقاء على باقي مسارات الأدمن، مع إزالة تكرار admin/chats المعرّف أعلاه.
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/security-permits', [SecurityPermitController::class, 'index']);
-    Route::put('/security-permits/{id}/status', [SecurityPermitController::class, 'updateStatus']);
+    // Security Permits - Admin Routes (Legacy - will be moved to admin prefix)
+    Route::get('/security-permits', [AdminSecurityPermitController::class, 'index']);
+    Route::put('/security-permits/{id}/status', [AdminSecurityPermitController::class, 'updateStatus']);
+    
     Route::put('/restaurants/{id}/the-best', [RestaurantController::class, 'updateTheBest']);
     Route::put('/properties/{id}/the-best', [PropertyController::class, 'updateTheBest']);
     Route::get('/orders', [OrderController::class, 'index']);
@@ -317,6 +323,34 @@ Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
     Route::get('/service-requests', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'index']);
     Route::post('/service-requests/{id}/approve', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'approve']);
     Route::post('/service-requests/{id}/reject', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'reject']);
+    
+    // Security Permits - Admin Routes
+    Route::prefix('security-permits')->group(function () {
+        Route::get('/', [AdminSecurityPermitController::class, 'index']);
+        Route::get('/{id}', [AdminSecurityPermitController::class, 'show']);
+        Route::put('/{id}/status', [AdminSecurityPermitController::class, 'updateStatus']);
+        Route::put('/{id}/payment-status', [AdminSecurityPermitController::class, 'updatePaymentStatus']);
+        Route::delete('/{id}', [AdminSecurityPermitController::class, 'destroy']);
+        Route::get('/statistics/overview', [AdminSecurityPermitController::class, 'getStatistics']);
+    });
+    
+    // Security Permits Settings
+    Route::prefix('security-permits-settings')->group(function () {
+        Route::get('/', [AdminSecurityPermitController::class, 'getSettings']);
+        Route::put('/', [AdminSecurityPermitController::class, 'updateSettings']);
+    });
+    
+    // Countries Management
+    Route::prefix('countries')->group(function () {
+        Route::get('/', [AdminSecurityPermitController::class, 'getCountries']);
+        Route::put('/{id}', [AdminSecurityPermitController::class, 'updateCountry']);
+    });
+    
+    // Nationalities Management
+    Route::prefix('nationalities')->group(function () {
+        Route::get('/', [AdminSecurityPermitController::class, 'getNationalities']);
+        Route::put('/{id}', [AdminSecurityPermitController::class, 'updateNationality']);
+    });
 });
 
 // ======= Menu Sections and Items (Public) =======
