@@ -45,9 +45,9 @@ class OtpAuthController extends Controller
             ], 422);
         }
 
-        // Rate limiting
+        // Rate limiting - تقليل الحد لإعادة الإرسال
         $key = 'email-verification-otp:' . $request->ip() . ':' . $request->email;
-        if (RateLimiter::tooManyAttempts($key, 3)) {
+        if (RateLimiter::tooManyAttempts($key, 5)) { // زيادة المحاولات من 3 إلى 5
             $seconds = RateLimiter::availableIn($key);
             return response()->json([
                 'success' => false,
@@ -80,7 +80,7 @@ class OtpAuthController extends Controller
                 $user->name
             ));
 
-            RateLimiter::hit($key, 300); // 5 minutes
+            RateLimiter::hit($key, 180); // تقليل المدة من 300 إلى 180 ثانية (3 دقائق)
 
             return response()->json([
                 'success' => true,
@@ -277,9 +277,9 @@ class OtpAuthController extends Controller
             ], 422);
         }
 
-        // Rate limiting
+        // Rate limiting - تحسين للسماح بإعادة الإرسال
         $key = 'password-reset-otp:' . $request->ip() . ':' . $request->email;
-        if (RateLimiter::tooManyAttempts($key, 3)) {
+        if (RateLimiter::tooManyAttempts($key, 5)) { // زيادة المحاولات من 3 إلى 5
             $seconds = RateLimiter::availableIn($key);
             return response()->json([
                 'success' => false,
@@ -312,7 +312,7 @@ class OtpAuthController extends Controller
                 $user->name
             ));
 
-            RateLimiter::hit($key, 300); // 5 minutes
+            RateLimiter::hit($key, 180); // تقليل المدة من 300 إلى 180 ثانية (3 دقائق)
 
             return response()->json([
                 'success' => true,
