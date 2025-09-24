@@ -87,18 +87,17 @@ Authorization: Bearer {token}
 ```http
 POST /api/security-permits
 Authorization: Bearer {token}
-Content-Type: application/json
+Content-Type: multipart/form-data
 
-{
-  "travel_date": "2024-12-25",
-  "nationality_id": 1,
-  "people_count": 2,
-  "country_id": 5,
-  "passport_image": "https://example.com/passport.jpg",
-  "residence_images": ["https://example.com/residence1.jpg"],
-  "payment_method": "credit_card",
-  "notes": "ملاحظات إضافية"
-}
+Form Data:
+- travel_date: 2024-12-25
+- nationality_id: 1
+- people_count: 2
+- country_id: 5
+- passport_image: [FILE] (صورة الجواز)
+- residence_images[]: [FILE] (صور الإقامة - اختيارية)
+- payment_method: credit_card
+- notes: ملاحظات إضافية
 ```
 
 #### عرض طلبات المستخدم

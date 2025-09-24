@@ -54,12 +54,30 @@ class SecurityPermitController extends Controller
                 'nationality_id' => 'required|exists:nationalities,id',
                 'people_count' => 'required|integer|min:1|max:20',
                 'country_id' => 'required|exists:countries,id',
-                'passport_image' => 'required|string',
-                'residence_images' => 'nullable|array',
-                'residence_images.*' => 'string',
+                'passport_image' => 'required|file|image|mimes:jpeg,png,jpg|max:5120',
+                'residence_images' => 'nullable|array|max:5',
+                'residence_images.*' => 'file|image|mimes:jpeg,png,jpg|max:5120',
                 'payment_method' => 'required|in:credit_card,digital_wallet',
                 'notes' => 'nullable|string|max:1000',
             ]);
+
+            // رفع صورة الجواز
+            $passportPath = null;
+            if ($request->hasFile('passport_image')) {
+                $passportPath = $request->file('passport_image')->store('security-permits/passports', 'public');
+            }
+
+            // رفع صور الإقامة
+            $residenceImages = [];
+            if ($request->hasFile('residence_images')) {
+                foreach ($request->file('residence_images') as $image) {
+                    $residenceImages[] = $image->store('security-permits/residence', 'public');
+                }
+            }
+
+            // الحصول على بيانات الجنسية والدولة للحفظ في الحقول النصية
+            $nationality = Nationality::find($validated['nationality_id']);
+            $country = Country::find($validated['country_id']);
 
             // حساب الرسوم
             $individualFee = SecurityPermitSetting::getSetting('individual_fee', 100);
@@ -68,11 +86,13 @@ class SecurityPermitController extends Controller
             $permit = SecurityPermit::create([
                 'user_id' => Auth::id(),
                 'travel_date' => $validated['travel_date'],
+                'nationality' => $nationality->name_ar, // حفظ النص للتوافق مع النظام القديم
                 'nationality_id' => $validated['nationality_id'],
                 'people_count' => $validated['people_count'],
+                'coming_from' => $country->name_ar, // حفظ النص للتوافق مع النظام القديم
                 'country_id' => $validated['country_id'],
-                'passport_image' => $validated['passport_image'],
-                'residence_images' => $validated['residence_images'] ?? [],
+                'passport_image' => $passportPath,
+                'residence_images' => $residenceImages,
                 'payment_method' => $validated['payment_method'],
                 'individual_fee' => $individualFee,
                 'total_amount' => $totalAmount,
