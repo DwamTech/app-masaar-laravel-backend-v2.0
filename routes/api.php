@@ -341,6 +341,11 @@ Route::get('/public-restaurants/{user}', [PublicRestaurantController::class, 'sh
 
 // !! المسار الجديد الخاص بالعقارات !!
 Route::get('/public-properties', [PublicPropertyController::class, 'index']);
+Route::get('/public-properties/search', [PublicPropertyController::class, 'search']);
+
+// !! مسارات البحث في الوجبات !!
+Route::get('/menu-items/search', [MenuItemController::class, 'search']);
+Route::get('/menu-items/quick-search', [MenuItemController::class, 'quickSearch']);
 
 // My Orders (Authenticated)
 Route::middleware('auth:sanctum')->group(function () {
