@@ -14,34 +14,43 @@ class PublicPropertyController extends Controller
      */
     public function index(Request $request)
     {
-        // نبدأ ببناء الاستعلام الأساسي.
-        $query = Property::query();
+        try {
+            // نبدأ ببناء الاستعلام الأساسي.
+            $query = Property::query();
 
-        // **شرط أمني مهم:** جلب العقارات فقط من المستخدمين الموافق عليهم (is_approved).
-        $query->whereHas('user', function ($q) {
-            $q->where('is_approved', 1);
-        });
-        
-        // -- الفلترة الديناميكية الذكية --
+            // **شرط أمني مهم:** جلب العقارات فقط من المستخدمين الموافق عليهم (is_approved).
+            $query->whereHas('user', function ($q) {
+                $q->where('is_approved', 1);
+            });
+            
+            // -- الفلترة الديناميكية الذكية --
 
-        // فلتر: هل العقار من "الأفضل" (the_best)؟
-        $query->when($request->boolean('the_best'), function ($q) {
-            return $q->where('the_best', 1);
-        });
+            // فلتر: هل العقار من "الأفضل" (the_best)؟
+            $query->when($request->boolean('the_best'), function ($q) {
+                return $q->where('the_best', 1);
+            });
 
-        // فلتر حسب نوع العقار
-        $query->when($request->input('type'), function ($q, $type) {
-            return $q->where('type', $type);
-        });
+            // فلتر حسب نوع العقار
+            $query->when($request->input('type'), function ($q, $type) {
+                return $q->where('type', $type);
+            });
 
-        // **الأهم لتحسين الأداء:** تحميل العلاقات مسبقًا
-        $query->with(['user:id,name,phone', 'realEstate']);
-        
-        // جلب النتائج مع تقسيمها إلى صفحات وترتيبها بالأحدث
-        $properties = $query->latest()->paginate(15)->withQueryString();
+            // **الأهم لتحسين الأداء:** تحميل العلاقات مسبقًا
+            $query->with(['user:id,name,phone,governorate,city', 'realEstate']);
+            
+            // جلب النتائج مع تقسيمها إلى صفحات وترتيبها بالأحدث
+            $properties = $query->latest()->paginate(15)->withQueryString();
 
-        // إرجاع البيانات بعد تنسيقها باستخدام الـ Resource
-        return PropertyResource::collection($properties);
+            // إرجاع البيانات بعد تنسيقها باستخدام الـ Resource
+            return PropertyResource::collection($properties);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ في جلب العقارات',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -49,7 +58,8 @@ class PublicPropertyController extends Controller
      */
     public function search(Request $request)
     {
-        $query = Property::query();
+        try {
+            $query = Property::query();
 
         // **شرط أمني مهم:** جلب العقارات فقط من المستخدمين الموافق عليهم
         $query->whereHas('user', function ($q) {
@@ -70,14 +80,14 @@ class PublicPropertyController extends Controller
             return $q->where('type', $type);
         });
 
-        // فلتر حسب المحافظة (من خلال المستخدم)
+        // فلتر حسب المحافظة
         $query->when($request->input('governorate'), function ($q, $governorate) {
             return $q->whereHas('user', function ($userQuery) use ($governorate) {
                 $userQuery->where('governorate', $governorate);
             });
         });
 
-        // فلتر حسب المدينة/الحي (من خلال المستخدم)
+        // فلتر حسب المدينة
         $query->when($request->input('city'), function ($q, $city) {
             return $q->whereHas('user', function ($userQuery) use ($city) {
                 $userQuery->where('city', $city);
@@ -93,7 +103,7 @@ class PublicPropertyController extends Controller
             return $q->where('price', '<=', $maxPrice);
         });
 
-        // فلتر حسب عدد غرف النوم
+        // فلتر حسب عدد الغرف
         $query->when($request->input('bedrooms'), function ($q, $bedrooms) {
             return $q->where('bedrooms', '>=', $bedrooms);
         });
@@ -152,5 +162,13 @@ class PublicPropertyController extends Controller
         $properties = $query->paginate($perPage)->withQueryString();
 
         return PropertyResource::collection($properties);
+        
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ في البحث عن العقارات',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 }

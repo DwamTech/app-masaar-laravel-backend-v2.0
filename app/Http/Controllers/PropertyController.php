@@ -109,21 +109,27 @@ public function index(Request $request)
 
     public function updateTheBest(Request $request, $id)
     {
-        // التأكد من الصلاحية (مثلاً بوسيط is_admin أو Gate أو Policy)
-        $this->authorize('is_admin');
+        // التحقق من صلاحية الإدارة
+        if (auth()->user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
 
         $property = Property::findOrFail($id);
-        $property->validate([
+        
+        $validated = $request->validate([
             'the_best' => 'required|boolean',
         ]);
 
-        $property->the_best = $request->the_best;
+        $property->the_best = $validated['the_best'];
         $property->save();
 
         return response()->json([
             'status' => true,
             'message' => 'تم تحديث وضع الأفضل',
-            'restaurant' => $property
+            'property' => $property
         ]);
     }
     // PropertyController.php
