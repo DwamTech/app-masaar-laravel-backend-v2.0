@@ -100,6 +100,92 @@ Form Data:
 - notes: ملاحظات إضافية
 ```
 
+{
+    "status": true,
+    "message": "تم تقديم طلب التصريح الأمني بنجاح",
+    "permit": {
+        "user_id": 21,
+        "travel_date": "2025-12-25T00:00:00.000000Z",
+        "nationality": {
+            "id": 1,
+            "name_ar": "مصري",
+            "name_en": "Egyptian",
+            "code": "EG",
+            "is_active": true,
+            "sort_order": 1,
+            "created_at": "2025-09-24T11:56:24.000000Z",
+            "updated_at": "2025-09-24T11:56:24.000000Z"
+        },
+        "nationality_id": "1",
+        "people_count": 2,
+        "coming_from": "قطر",
+        "country_id": "5",
+        "passport_image": "security-permits/passports/lEgaP3qRTQD0Kk8sSdpL1OhbHxaM0VKkPxQcTGc4.png",
+        "residence_images": [
+            "security-permits/residence/wjxagknrOnvq597xfdt9MIXnCMa9rjMAavnhTTg3.png",
+            "security-permits/residence/2d0RX924KzzfaJQzsA5ALTAXIjmagklQtpPgLWeT.png"
+        ],
+        "payment_method": "credit_card",
+        "individual_fee": "150.00",
+        "total_amount": "300.00",
+        "notes": "ملاحظات إضافية",
+        "status": "new",
+        "payment_status": "pending",
+        "updated_at": "2025-09-24T12:30:08.000000Z",
+        "created_at": "2025-09-24T12:30:08.000000Z",
+        "id": 1,
+        "status_label": "جديد",
+        "payment_status_label": "في انتظار الدفع",
+        "user": {
+            "id": 21,
+            "name": "testt",
+            "email": "abdalrhman.software.eg@gmail.com",
+            "profile_image": null,
+            "phone": "01067680835",
+            "governorate": "الإسماعيلية",
+            "is_available": 0,
+            "city": "الإسماعيلية",
+            "latitude": null,
+            "longitude": null,
+            "current_address": null,
+            "location_updated_at": null,
+            "location_sharing_enabled": true,
+            "google_id": null,
+            "avatar": null,
+            "login_type": "email",
+            "email_verified_at": null,
+            "email_verification_expires_at": null,
+            "email_verification_sent_at": null,
+            "email_verification_attempts": 0,
+            "password_reset_expires_at": null,
+            "password_reset_sent_at": null,
+            "password_reset_attempts": 0,
+            "is_email_verified": true,
+            "account_active": true,
+            "user_type": "normal",
+            "is_approved": true,
+            "the_best": false,
+            "push_notifications_enabled": 1,
+            "rating": "0.00",
+            "rating_count": 0,
+            "created_at": "2025-09-12T12:32:22.000000Z",
+            "updated_at": "2025-09-24T10:47:49.000000Z"
+        },
+        "country": {
+            "id": 5,
+            "name_ar": "قطر",
+            "name_en": "Qatar",
+            "code": "QA",
+            "is_active": true,
+            "sort_order": 5,
+            "created_at": "2025-09-24T11:56:20.000000Z",
+            "updated_at": "2025-09-24T11:56:20.000000Z"
+        }
+    }
+}
+
+
+
 #### عرض طلبات المستخدم
 ```http
 GET /api/security-permits/my?status=all&payment_status=all&page=1

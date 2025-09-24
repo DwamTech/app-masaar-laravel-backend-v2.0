@@ -14,24 +14,19 @@ use Illuminate\Validation\Rule;
 
 class AdminSecurityPermitController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            if (Auth::user()->user_type !== 'admin') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'غير مصرح لك بالوصول'
-                ], 403);
-            }
-            return $next($request);
-        });
-    }
-
     /**
      * عرض جميع الطلبات مع الفلترة والبحث
      */
     public function index(Request $request)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $query = SecurityPermit::with(['user', 'country', 'nationality'])
                 ->latest();
@@ -84,6 +79,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function show($id)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $permit = SecurityPermit::with(['user', 'country', 'nationality'])
                 ->findOrFail($id);
@@ -106,6 +109,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $permit = SecurityPermit::findOrFail($id);
 
@@ -136,6 +147,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function updatePaymentStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $permit = SecurityPermit::findOrFail($id);
 
@@ -166,6 +185,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function destroy($id)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $permit = SecurityPermit::findOrFail($id);
             $permit->delete();
@@ -206,6 +233,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function getSettings()
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $settings = SecurityPermitSetting::editable()->get()->groupBy('group');
             
@@ -228,6 +263,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function updateSettings(Request $request)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $validated = $request->validate([
                 'individual_fee' => 'required|numeric|min:0',
@@ -254,6 +297,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function getCountries()
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         return response()->json([
             'status' => true,
             'countries' => Country::ordered()->get()
@@ -262,6 +313,14 @@ class AdminSecurityPermitController extends Controller
 
     public function updateCountry(Request $request, $id)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $country = Country::findOrFail($id);
             
@@ -295,6 +354,14 @@ class AdminSecurityPermitController extends Controller
      */
     public function getNationalities()
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         return response()->json([
             'status' => true,
             'nationalities' => Nationality::ordered()->get()
@@ -303,6 +370,14 @@ class AdminSecurityPermitController extends Controller
 
     public function updateNationality(Request $request, $id)
     {
+        // التحقق من صلاحية الإدارة
+        if (Auth::user()->user_type !== 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بالوصول'
+            ], 403);
+        }
+
         try {
             $nationality = Nationality::findOrFail($id);
             
