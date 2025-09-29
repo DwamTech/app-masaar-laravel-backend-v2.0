@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('ownership_type', ['freehold', 'leasehold', 'usufruct'])->after('title');
             $table->decimal('property_price', 15, 2)->after('ownership_type');
             $table->decimal('down_payment', 15, 2)->nullable()->after('property_price');
-            $table->string('property_code')->unique()->after('down_payment');
+            $table->string('property_code')->nullable()->after('down_payment');
             $table->integer('view_count')->default(0)->after('property_code');
             $table->enum('advertiser_type', ['owner', 'broker', 'developer'])->after('view_count');
             
@@ -62,6 +62,16 @@ return new class extends Migration
             $table->renameColumn('image_url', 'old_image_url');
             $table->renameColumn('view', 'old_view');
             $table->renameColumn('area', 'old_area');
+        });
+
+        // Populate existing rows with a unique property_code
+        foreach (\App\Models\Property::whereNull('property_code')->orWhere('property_code', '')->cursor() as $property) {
+            $property->update(['property_code' => 'PROP-' . strtoupper(uniqid())]);
+        }
+
+        // Now, enforce the unique constraint and make it non-nullable
+        Schema::table('properties', function (Blueprint $table) {
+            $table->string('property_code')->nullable(false)->unique()->change();
         });
     }
 
