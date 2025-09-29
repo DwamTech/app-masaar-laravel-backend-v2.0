@@ -104,12 +104,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/driver/update-availability', [UserController::class, 'updateAvailability']);
     Route::post('/driver/update-location', [UserController::class, 'updateDriverLocation']);
 
-    // Properties
-    Route::get('/properties', [PropertyController::class, 'index']);
+    // Properties - Service Provider Routes
     Route::post('/properties', [PropertyController::class, 'store']);
     Route::put('/properties/{id}', [PropertyController::class, 'update']);
     Route::delete('/properties/{id}', [PropertyController::class, 'destroy']);
-    Route::get('/all-properties', [PropertyController::class, 'allProperties']);
 
     // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
@@ -319,10 +317,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admin/service-requests/all', [AdminServiceRequestController::class, 'archive']);
 });
 
-Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function () {
     Route::get('/service-requests', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'index']);
     Route::post('/service-requests/{id}/approve', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'approve']);
     Route::post('/service-requests/{id}/reject', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'reject']);
+    
+    // Properties - Admin Routes
+    Route::get('/properties', [PropertyController::class, 'adminIndex']);
+    Route::delete('/properties/{id}', [PropertyController::class, 'adminDestroy']);
+    Route::patch('/properties/{id}/feature', [PropertyController::class, 'toggleFeatured']);
     
     // Security Permits - Admin Routes
     Route::prefix('security-permits')->group(function () {
@@ -373,9 +376,11 @@ Route::delete('/restaurant-banners/{banner}', [RestaurantBannerController::class
 Route::get('/public-restaurants', [PublicRestaurantController::class, 'index']);
 Route::get('/public-restaurants/{user}', [PublicRestaurantController::class, 'show']);
 
-// !! المسار الجديد الخاص بالعقارات !!
-Route::get('/public-properties', [PublicPropertyController::class, 'index']);
-Route::get('/public-properties/search', [PublicPropertyController::class, 'search']);
+// ======= Public Properties (Public) =======
+Route::get('/properties', [PropertyController::class, 'index']);
+Route::get('/properties/search', [PropertyController::class, 'search']);
+Route::get('/properties/featured', [PropertyController::class, 'featured']);
+Route::get('/properties/{id}', [PropertyController::class, 'show']);
 
 // !! مسارات البحث في الوجبات !!
 Route::get('/menu-items/search', [MenuItemController::class, 'search']);
