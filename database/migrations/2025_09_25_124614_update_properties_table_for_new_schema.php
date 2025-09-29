@@ -12,66 +12,117 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('properties', function (Blueprint $table) {
-            // إضافة الحقول الجديدة المطلوبة حسب JSON Schema
-            $table->string('title')->after('id');
-            $table->enum('ownership_type', ['freehold', 'leasehold', 'usufruct'])->after('title');
-            $table->decimal('property_price', 15, 2)->after('ownership_type');
-            $table->decimal('down_payment', 15, 2)->nullable()->after('property_price');
-            $table->string('property_code')->nullable()->after('down_payment');
-            $table->integer('view_count')->default(0)->after('property_code');
-            $table->enum('advertiser_type', ['owner', 'broker', 'developer'])->after('view_count');
-            
-            // معلومات الاتصال (JSON)
-            $table->json('contact_info')->after('advertiser_type');
-            
-            // معلومات الموقع (JSON)
-            $table->json('location')->after('contact_info');
-            
-            // تفاصيل العقار
-            $table->integer('bedrooms')->change(); // تأكد من أنه integer
-            $table->integer('bathrooms')->change(); // تأكد من أنه integer
-            $table->decimal('size_in_sqm', 10, 2)->after('bathrooms');
-            $table->enum('finishing_level', ['fully_finished', 'semi_finished', 'core_and_shell'])->nullable()->after('size_in_sqm');
-            $table->integer('floor_number')->nullable()->after('finishing_level');
-            $table->string('overlooking')->nullable()->after('floor_number');
-            $table->integer('year_built')->nullable()->after('overlooking');
-            $table->decimal('price_per_square_meter', 10, 2)->nullable()->after('year_built');
-            $table->enum('property_status', ['available', 'sold', 'rented'])->default('available')->after('payment_method');
-            $table->string('developer_name')->nullable()->after('property_status');
-            $table->string('logo_url')->nullable()->after('developer_name');
-            
-            // المميزات والخدمات (JSON Arrays)
-            $table->json('features')->nullable()->after('logo_url');
-            $table->json('amenities')->nullable()->after('features');
-            
-            // الصور
-            $table->string('main_image')->after('amenities');
-            $table->json('gallery_image_urls')->nullable()->after('main_image');
-            
-            // نوع العقار وحالة الجاهزية
-            $table->enum('property_type', ['apartment', 'villa', 'townhouse', 'office', 'shop'])->after('gallery_image_urls');
-            $table->enum('readiness_status', ['ready_to_move', 'under_construction', 'off_plan'])->nullable()->after('property_type');
-            
-            // العملة والمميز
-            $table->string('currency', 3)->default('EGP')->after('readiness_status');
-            $table->boolean('is_featured')->default(false)->after('currency');
-            
-            // إعادة تسمية الحقول الموجودة
-            $table->renameColumn('type', 'old_type');
-            $table->renameColumn('price', 'old_price');
-            $table->renameColumn('image_url', 'old_image_url');
-            $table->renameColumn('view', 'old_view');
-            $table->renameColumn('area', 'old_area');
+            if (!Schema::hasColumn('properties', 'title')) {
+                $table->string('title')->after('id');
+            }
+            if (!Schema::hasColumn('properties', 'ownership_type')) {
+                $table->enum('ownership_type', ['freehold', 'leasehold', 'usufruct'])->after('title');
+            }
+            if (!Schema::hasColumn('properties', 'property_price')) {
+                $table->decimal('property_price', 15, 2)->after('ownership_type');
+            }
+            if (!Schema::hasColumn('properties', 'down_payment')) {
+                $table->decimal('down_payment', 15, 2)->nullable()->after('property_price');
+            }
+            if (!Schema::hasColumn('properties', 'property_code')) {
+                $table->string('property_code')->nullable()->after('down_payment');
+            }
+            if (!Schema::hasColumn('properties', 'view_count')) {
+                $table->integer('view_count')->default(0)->after('property_code');
+            }
+            if (!Schema::hasColumn('properties', 'advertiser_type')) {
+                $table->enum('advertiser_type', ['owner', 'broker', 'developer'])->after('view_count');
+            }
+            if (!Schema::hasColumn('properties', 'contact_info')) {
+                $table->json('contact_info')->after('advertiser_type');
+            }
+            if (!Schema::hasColumn('properties', 'location')) {
+                $table->json('location')->after('contact_info');
+            }
+            if (Schema::hasColumn('properties', 'bedrooms')) {
+                $table->integer('bedrooms')->change();
+            }
+            if (Schema::hasColumn('properties', 'bathrooms')) {
+                $table->integer('bathrooms')->change();
+            }
+            if (!Schema::hasColumn('properties', 'size_in_sqm')) {
+                $table->decimal('size_in_sqm', 10, 2)->after('bathrooms');
+            }
+            if (!Schema::hasColumn('properties', 'finishing_level')) {
+                $table->enum('finishing_level', ['fully_finished', 'semi_finished', 'core_and_shell'])->nullable()->after('size_in_sqm');
+            }
+            if (!Schema::hasColumn('properties', 'floor_number')) {
+                $table->integer('floor_number')->nullable()->after('finishing_level');
+            }
+            if (!Schema::hasColumn('properties', 'overlooking')) {
+                $table->string('overlooking')->nullable()->after('floor_number');
+            }
+            if (!Schema::hasColumn('properties', 'year_built')) {
+                $table->integer('year_built')->nullable()->after('overlooking');
+            }
+            if (!Schema::hasColumn('properties', 'price_per_square_meter')) {
+                $table->decimal('price_per_square_meter', 10, 2)->nullable()->after('year_built');
+            }
+            if (!Schema::hasColumn('properties', 'property_status')) {
+                $table->enum('property_status', ['available', 'sold', 'rented'])->default('available')->after('payment_method');
+            }
+            if (!Schema::hasColumn('properties', 'developer_name')) {
+                $table->string('developer_name')->nullable()->after('property_status');
+            }
+            if (!Schema::hasColumn('properties', 'logo_url')) {
+                $table->string('logo_url')->nullable()->after('developer_name');
+            }
+            if (!Schema::hasColumn('properties', 'features')) {
+                $table->json('features')->nullable()->after('logo_url');
+            }
+            if (!Schema::hasColumn('properties', 'amenities')) {
+                $table->json('amenities')->nullable()->after('features');
+            }
+            if (!Schema::hasColumn('properties', 'main_image')) {
+                $table->string('main_image')->after('amenities');
+            }
+            if (!Schema::hasColumn('properties', 'gallery_image_urls')) {
+                $table->json('gallery_image_urls')->nullable()->after('main_image');
+            }
+            if (!Schema::hasColumn('properties', 'property_type')) {
+                $table->enum('property_type', ['apartment', 'villa', 'townhouse', 'office', 'shop'])->after('gallery_image_urls');
+            }
+            if (!Schema::hasColumn('properties', 'readiness_status')) {
+                $table->enum('readiness_status', ['ready_to_move', 'under_construction', 'off_plan'])->nullable()->after('property_type');
+            }
+            if (!Schema::hasColumn('properties', 'currency')) {
+                $table->string('currency', 3)->default('EGP')->after('readiness_status');
+            }
+            if (!Schema::hasColumn('properties', 'is_featured')) {
+                $table->boolean('is_featured')->default(false)->after('currency');
+            }
+            if (Schema::hasColumn('properties', 'type') && !Schema::hasColumn('properties', 'old_type')) {
+                $table->renameColumn('type', 'old_type');
+            }
+            if (Schema::hasColumn('properties', 'price') && !Schema::hasColumn('properties', 'old_price')) {
+                $table->renameColumn('price', 'old_price');
+            }
+            if (Schema::hasColumn('properties', 'image_url') && !Schema::hasColumn('properties', 'old_image_url')) {
+                $table->renameColumn('image_url', 'old_image_url');
+            }
+            if (Schema::hasColumn('properties', 'view') && !Schema::hasColumn('properties', 'old_view')) {
+                $table->renameColumn('view', 'old_view');
+            }
+            if (Schema::hasColumn('properties', 'area') && !Schema::hasColumn('properties', 'old_area')) {
+                $table->renameColumn('area', 'old_area');
+            }
         });
 
-        // Populate existing rows with a unique property_code
-        foreach (\App\Models\Property::whereNull('property_code')->orWhere('property_code', '')->cursor() as $property) {
-            $property->update(['property_code' => 'PROP-' . strtoupper(uniqid())]);
+        if (Schema::hasColumn('properties', 'property_code')) {
+            foreach (\App\Models\Property::whereNull('property_code')->orWhere('property_code', '')->cursor() as $property) {
+                $property->update(['property_code' => 'PROP-' . strtoupper(uniqid())]);
+            }
         }
 
-        // Now, enforce the unique constraint and make it non-nullable
         Schema::table('properties', function (Blueprint $table) {
-            $table->string('property_code')->nullable(false)->unique()->change();
+            if (Schema::hasColumn('properties', 'property_code')) {
+                $table->string('property_code')->nullable(false)->unique()->change();
+            }
         });
     }
 

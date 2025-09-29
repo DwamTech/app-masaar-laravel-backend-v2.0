@@ -307,7 +307,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/security-permits/{id}/status', [AdminSecurityPermitController::class, 'updateStatus']);
     
     Route::put('/restaurants/{id}/the-best', [RestaurantController::class, 'updateTheBest']);
-    Route::put('/properties/{id}/the-best', [PropertyController::class, 'updateTheBest']);
+    
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/approve', [OrderController::class, 'approve']);

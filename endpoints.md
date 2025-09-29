@@ -4,7 +4,7 @@ This file documents all the API endpoints related to properties.
 - **Create Property:** `POST /api/properties`
 - **Update Property:** `PUT /api/properties/{id}`
 - **Delete Property:** `DELETE /api/properties/{id}`
-- **Update The Best Property:** `POST /api/properties/updateTheBest`
+- **Update The Best Property:** `PUT /api/properties/{id}/the-best` (Note: This endpoint is not fully implemented and currently does not work.)
 
 - **Admin Index:** `GET /api/admin/properties`
 - **Admin Delete Property:** `DELETE /api/admin/properties/{id}`
