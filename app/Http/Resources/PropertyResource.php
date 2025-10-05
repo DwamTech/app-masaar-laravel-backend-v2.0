@@ -26,10 +26,10 @@ class PropertyResource extends JsonResource
             'bathrooms' => $this->bathrooms,
             'view' => $this->view,
             'payment_method' => $this->payment_method,
-            'area' => $this->area,
-            'is_ready' => (bool)$this->is_ready,
-            'the_best' => (bool)$this->the_best,
-            'created_at' => $this->created_at->toDateTimeString(),
+        'area' => $this->area,
+        'is_ready' => (bool)$this->is_ready,
+        'is_featured' => (bool)$this->is_featured,
+        'created_at' => $this->created_at->toDateTimeString(),
             
             // الآن، هذا السطر سيعمل بنجاح لأن UserResource أصبح موجودًا ومعروفًا.
             'provider' => new UserResource($this->whenLoaded('user')),

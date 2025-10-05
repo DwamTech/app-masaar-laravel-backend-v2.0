@@ -30,7 +30,6 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ConversationFeatureController;
 use App\Http\Controllers\Api\RestaurantBannerController;
 use App\Http\Controllers\Api\PublicRestaurantController;
-use App\Http\Controllers\Api\PublicPropertyController;
 use App\Http\Controllers\Api\MyOrdersController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;

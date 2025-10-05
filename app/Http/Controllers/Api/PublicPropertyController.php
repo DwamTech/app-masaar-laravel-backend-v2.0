@@ -25,9 +25,9 @@ class PublicPropertyController extends Controller
             
             // -- الفلترة الديناميكية الذكية --
 
-            // فلتر: هل العقار من "الأفضل" (the_best)؟
-            $query->when($request->boolean('the_best'), function ($q) {
-                return $q->where('the_best', 1);
+            // فلتر: العقارات المميزة (is_featured)
+            $query->when($request->boolean('is_featured'), function ($q) {
+                return $q->where('is_featured', 1);
             });
 
             // فلتر حسب نوع العقار
@@ -138,8 +138,8 @@ class PublicPropertyController extends Controller
         });
 
         // فلتر العقارات المميزة
-        $query->when($request->boolean('the_best'), function ($q) {
-            return $q->where('the_best', 1);
+        $query->when($request->boolean('is_featured'), function ($q) {
+            return $q->where('is_featured', 1);
         });
 
         // ترتيب النتائج
