@@ -34,6 +34,12 @@ class PropertyController extends Controller
             }
 
             $validated = $request->validated();
+
+            // توافقية مع مخطط قديم: حقول old_* بعد إعادة التسمية قد تكون غير قابلة للإفراغ
+            // نضمن تعبئتها بقيم من الحقول الجديدة لتفادي أخطاء 1364
+            if (!isset($validated['old_type']) && isset($validated['property_type'])) {
+                $validated['old_type'] = $validated['property_type'];
+            }
             
             // رفع الصورة الرئيسية
             if ($request->hasFile('main_image')) {
@@ -88,6 +94,11 @@ class PropertyController extends Controller
                 ->firstOrFail();
 
             $validated = $request->validated();
+
+            // توافقية مع المخطط القديم عند التحديث أيضاً
+            if (!isset($validated['old_type']) && isset($validated['property_type'])) {
+                $validated['old_type'] = $validated['property_type'];
+            }
 
             // رفع الصورة الرئيسية الجديدة
             if ($request->hasFile('main_image')) {
