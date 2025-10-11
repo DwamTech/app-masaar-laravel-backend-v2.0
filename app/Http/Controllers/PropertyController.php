@@ -398,6 +398,11 @@ class PropertyController extends Controller
      */
     private function uploadImage($image, $path)
     {
+        // تأكد من وجود المجلد على قرص public لتجنب أخطاء الأذونات/المسارات
+        if (!Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->makeDirectory($path);
+        }
+
         $filename = Str::uuid() . '.' . $image->getClientOriginalExtension();
         $imagePath = $image->storeAs($path, $filename, 'public');
         return Storage::url($imagePath);
