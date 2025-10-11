@@ -40,6 +40,9 @@ class PropertyController extends Controller
             if (!isset($validated['old_type']) && isset($validated['property_type'])) {
                 $validated['old_type'] = $validated['property_type'];
             }
+            if (!isset($validated['old_price']) && isset($validated['property_price'])) {
+                $validated['old_price'] = $validated['property_price'];
+            }
             
             // رفع الصورة الرئيسية
             if ($request->hasFile('main_image')) {
@@ -98,6 +101,9 @@ class PropertyController extends Controller
             // توافقية مع المخطط القديم عند التحديث أيضاً
             if (!isset($validated['old_type']) && isset($validated['property_type'])) {
                 $validated['old_type'] = $validated['property_type'];
+            }
+            if (!isset($validated['old_price']) && isset($validated['property_price'])) {
+                $validated['old_price'] = $validated['property_price'];
             }
 
             // رفع الصورة الرئيسية الجديدة
