@@ -243,6 +243,40 @@ class PropertyController extends Controller
     }
 
     /**
+     * مقدم الخدمة (Service Provider) - عرض عقاراتي
+     * GET /api/my/properties
+     */
+    public function myProperties(Request $request)
+    {
+        $user = $request->user();
+        $perPage = $request->get('per_page', 20);
+
+        // ابحث عن العقارات الخاصة بالمستخدم الحالي
+        $query = Property::with(['realEstate', 'user'])
+            ->where('user_id', $user->id)
+            ->latest();
+
+        // دعم إضافي للعقارات المربوطة بـ real_estate_id في حال وجود بيانات قديمة
+        $realEstate = RealEstate::where('user_id', $user->id)->first();
+        if ($realEstate) {
+            $query->orWhere('real_estate_id', $realEstate->id);
+        }
+
+        $properties = $query->paginate($perPage);
+
+        return response()->json([
+            'status' => true,
+            'properties' => $properties->items(),
+            'pagination' => [
+                'current_page' => $properties->currentPage(),
+                'last_page' => $properties->lastPage(),
+                'per_page' => $properties->perPage(),
+                'total' => $properties->total(),
+            ]
+        ]);
+    }
+
+    /**
      * المستخدم العام (Public User) - عرض تفاصيل عقار واحد
      * GET /api/properties/{id}
      */

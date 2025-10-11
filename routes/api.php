@@ -107,6 +107,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/properties', [PropertyController::class, 'store']);
     Route::put('/properties/{id}', [PropertyController::class, 'update']);
     Route::delete('/properties/{id}', [PropertyController::class, 'destroy']);
+    // List only my properties (authenticated owner)
+    Route::get('/my/properties', [PropertyController::class, 'myProperties']);
 
     // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
