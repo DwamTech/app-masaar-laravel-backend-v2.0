@@ -11,11 +11,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // إضافة حقول التقييم للسائقين
-            $table->decimal('rating', 3, 2)->default(0.00)->after('push_notifications_enabled');
-            $table->unsignedInteger('rating_count')->default(0)->after('rating');
-        });
+        if (Schema::hasColumn('users', 'push_notifications_enabled')) {
+            Schema::table('users', function (Blueprint $table) {
+                // إضافة حقول التقييم للسائقين مع ترتيب بعد push_notifications_enabled عند توفره
+                if (!Schema::hasColumn('users', 'rating')) {
+                    $table->decimal('rating', 3, 2)->default(0.00)->after('push_notifications_enabled');
+                }
+                if (!Schema::hasColumn('users', 'rating_count')) {
+                    $table->unsignedInteger('rating_count')->default(0)->after('rating');
+                }
+            });
+        } else {
+            Schema::table('users', function (Blueprint $table) {
+                // إضافة الحقول بدون after لتجنب خطأ عند غياب push_notifications_enabled
+                if (!Schema::hasColumn('users', 'rating')) {
+                    $table->decimal('rating', 3, 2)->default(0.00);
+                }
+                if (!Schema::hasColumn('users', 'rating_count')) {
+                    $table->unsignedInteger('rating_count')->default(0);
+                }
+            });
+        }
     }
 
     /**
