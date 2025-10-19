@@ -16,11 +16,13 @@ class UsersByTypeSeeder extends Seeder
     {
         $definitions = [
             [
-                'name' => 'Admin User',
-                'email' => 'admin@example.com',
+                'name' => 'مدير النظام',
+                'email' => 'admin@masar.app',
                 'user_type' => 'admin',
                 'approved' => true,
-                'available' => false,
+                'available' => true,
+                'account_active' => true,
+                'email_verified' => true,
             ],
             [
                 'name' => 'Normal User',
@@ -84,6 +86,12 @@ class UsersByTypeSeeder extends Seeder
             }
             if (Schema::hasColumn('users', 'is_available')) {
                 $values['is_available'] = $def['available'] ? 1 : 0;
+            }
+            if (Schema::hasColumn('users', 'account_active') && isset($def['account_active'])) {
+                $values['account_active'] = $def['account_active'] ? 1 : 0;
+            }
+            if (Schema::hasColumn('users', 'is_email_verified') && isset($def['email_verified'])) {
+                $values['is_email_verified'] = $def['email_verified'] ? 1 : 0;
             }
 
             User::firstOrCreate($attributes, $values);
