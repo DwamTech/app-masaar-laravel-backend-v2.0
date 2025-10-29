@@ -156,6 +156,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/car-orders/{id}', [CarServiceOrderController::class, 'show']);
     Route::post('/car-orders/{id}/offer', [CarServiceOrderController::class, 'offer']);
     Route::post('/car-orders/{order_id}/offer/{offer_id}/accept', [CarServiceOrderController::class, 'acceptOffer']);
+    Route::post('/car-orders/{id}/accept-by-provider', [CarServiceOrderController::class, 'acceptByProvider']);
     Route::patch('/car-rental-office-detail/{id}/availability', [CarRentalOfficesDetailController::class, 'updateAvailability']);
 
     // Delivery Service Routes
@@ -399,3 +400,5 @@ Route::post('/{id}/read', [ConversationController::class, 'markAsRead']);
 // Password reset (Public)
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
+    // Car Service Orders - Admin
+    Route::get('/car-orders', [CarServiceOrderController::class, 'adminIndex']);

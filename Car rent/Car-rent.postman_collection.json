@@ -25,22 +25,108 @@
       }
     },
     {
+      "name": "Create Car Rent Order (Full Example)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"car_rental_id\": 12,\n  \"provider_type\": \"office\",\n  \"with_driver\": false,\n  \"car_category\": \"economy\",\n  \"car_model\": \"Toyota Corolla 2022\",\n  \"payment_method\": \"cash\",\n  \"rental_period_type\": \"daily\",\n  \"rental_duration\": 3,\n  \"delivery_location\": \"Jeddah, Al Andalus\",\n  \"delivery_time\": \"2025-11-02 10:00:00\",\n  \"requested_date\": \"2025-11-02\",\n  \"rental_start_at\": \"2025-11-02 10:00:00\",\n  \"rental_end_at\": \"2025-11-05 10:00:00\",\n  \"requested_price\": 250.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/car-orders",
+          "host": ["{{base_url}}"],
+          "path": ["api", "car-orders"]
+        }
+      }
+    },
+    {
       "name": "Get Car Models",
       "request": {
         "method": "GET",
         "header": [
           {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
         ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"category\": \"economy\",\n  \"provider_type\": \"office\",\n  \"with_driver\": false\n}"
+        },
         "url": {
           "raw": "{{base_url}}/api/cars/models",
           "host": ["{{base_url}}"],
-          "path": ["api", "cars", "models"]
+          "path": ["api", "cars", "models"],
+          "query": [
+            {"key": "category", "value": "economy"},
+            {"key": "provider_type", "value": "office"},
+            {"key": "with_driver", "value": "false"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Car Rent Orders",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/car-orders?order_type=rent",
+          "host": ["{{base_url}}"],
+          "path": ["api", "car-orders"],
+          "query": [
+            {"key": "order_type", "value": "rent"},
+            {"key": "status", "value": "pending_admin", "disabled": true},
+            {"key": "client_id", "value": "", "disabled": true},
+            {"key": "provider_id", "value": "", "disabled": true}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Accept Car Rent Order (Provider)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"agreed_price\": 300.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/car-orders/{{order_id}}/accept-by-provider",
+          "host": ["{{base_url}}"],
+          "path": ["api", "car-orders", "{{order_id}}", "accept-by-provider"]
+        }
+      }
+    },
+    {
+      "name": "Admin: List Car Rent Orders",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/car-orders",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "car-orders"],
+          "query": [
+            {"key": "status", "value": "pending_admin", "disabled": true},
+            {"key": "car_rental_id", "value": "", "disabled": true}
+          ]
         }
       }
     }
   ],
   "variable": [
     {"key": "base_url", "value": "http://localhost"},
-    {"key": "token", "value": "PASTE_TOKEN_HERE"}
+    {"key": "token", "value": "PASTE_TOKEN_HERE"},
+    {"key": "order_id", "value": "1"}
   ]
 }

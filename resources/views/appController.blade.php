@@ -1198,7 +1198,7 @@ async function fetchProperties(auto = false) {
         `<div class="text-center py-5"><div class="spinner-border"></div></div>`;
     }
 
-    const res = await fetch(`${baseUrl}/api/all-properties`, {
+    const res = await fetch(`${baseUrl}/api/admin/properties`, {
       headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
       signal: controller.signal
     });
@@ -1248,7 +1248,7 @@ function renderProperties(isFirstRender = false) {
 
   properties.forEach(p => {
     const cardId = `property-card-${p.id}`;
-    const isBest = Number(p?.the_best) === 1;
+    const isBest = (Number(p?.the_best) === 1) || Boolean(p?.is_featured);
 
     let col = document.getElementById(cardId);
     if (!col) {
@@ -1271,11 +1271,11 @@ function renderProperties(isFirstRender = false) {
 }
 
 function createPropertyCardHTML(p, isBest) {
-  const img = p?.image_url || '';
-  const type = p?.type || 'عقار';
-  const address = p?.address || '-';
-  const price = p?.price != null ? p.price : '-';
-  const area = p?.area ?? '-';
+  const img = p?.image_url || p?.main_image || (Array.isArray(p?.gallery_image_urls) && p.gallery_image_urls[0]) || '';
+  const type = p?.type || p?.property_type || 'عقار';
+  const address = p?.address || (p?.location && p.location.formatted_address) || '-';
+  const price = (p?.property_price != null ? p.property_price : (p?.price != null ? p.price : '-'));
+  const area = (p?.size_in_sqm != null ? p.size_in_sqm : (p?.area ?? '-'));
 
   return `
     <div class="modern-card new-card-animation js-open-details" data-kind="property" data-id="${p.id}" tabindex="0" role="button">
@@ -1313,14 +1313,17 @@ function createPropertyCardHTML(p, isBest) {
 function updatePropertyCard(col, p, isBest) {
   const title = col.querySelector('.modern-title');
   const sub = col.querySelector('.modern-subtitle');
-  if (title) title.textContent = p?.type || 'عقار';
-  if (sub) sub.textContent = p?.address || '-';
+  if (title) title.textContent = p?.type || p?.property_type || 'عقار';
+  if (sub) sub.textContent = p?.address || (p?.location && p.location.formatted_address) || '-';
 
   const imgEl = col.querySelector('.modern-property-image');
-  if (p?.image_url) {
-    if (imgEl) imgEl.src = p.image_url;
-  } else if (imgEl) {
-    imgEl.remove();
+  const nextImg = p?.image_url || p?.main_image || (Array.isArray(p?.gallery_image_urls) && p.gallery_image_urls[0]) || '';
+  if (imgEl) {
+    if (nextImg) {
+      imgEl.src = nextImg;
+    } else {
+      imgEl.remove();
+    }
   }
 
   const btn = col.querySelector('.modern-favorite-btn');
@@ -1345,18 +1348,19 @@ document.addEventListener('click', async (e) => {
     const token = getTokenOrThrow();
     const willSet = btn.classList.contains('active') ? 0 : 1;
 
-    const url = kind === 'restaurant'
+    const isRestaurant = kind === 'restaurant';
+    const url = isRestaurant
       ? `${baseUrl}/api/users/${id}`
-      : `${baseUrl}/api/properties/${id}`;
+      : `${baseUrl}/api/admin/properties/${id}/feature`;
 
     const res = await fetch(url, {
-      method: 'PUT',
+      method: isRestaurant ? 'PUT' : 'PATCH',
       headers: {
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ the_best: willSet })
+      body: JSON.stringify(isRestaurant ? { the_best: willSet } : { is_featured: willSet === 1 })
     });
 
     if (!res.ok) {
@@ -1372,8 +1376,8 @@ document.addEventListener('click', async (e) => {
         restaurants[idx]?.restaurant_detail?.logo_image || restaurants[idx]?.restaurant_detail?.profile_image || '');
     } else {
       const idx = properties.findIndex(p => String(p.id) === String(id));
-      if (idx > -1) properties[idx].the_best = willSet;
-      updatePropertyCard(document.getElementById(`property-card-${id}`), properties[idx], willSet);
+      if (idx > -1) properties[idx].is_featured = (willSet === 1);
+      updatePropertyCard(document.getElementById(`property-card-${id}`), properties[idx], (willSet === 1));
     }
   } catch (err) {
     console.error('[CONTROL] Toggle favorite error:', err);

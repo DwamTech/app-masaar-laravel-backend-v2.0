@@ -46,21 +46,21 @@ class CarServiceOrderController extends Controller
             'provider_id'        => $request->input('provider_id'),
             'order_type'         => $orderType,
             'provider_type'      => $providerType,
-            'with_driver'        => false,
+            'with_driver'        => (bool) $request->input('with_driver', false),
             'car_category'       => $request->input('car_category', 'economy'),
-            'car_model'          => null,
+            'car_model'          => $request->input('car_model'),
             'payment_method'     => $request->input('payment_method', 'cash'),
-            'rental_period_type' => null,
-            'rental_duration'    => null,
+            'rental_period_type' => $request->input('rental_period_type'),
+            'rental_duration'    => $request->input('rental_duration'),
             'status'             => $initialStatus,
             'requested_price'    => $request->input('requested_price'),
             'from_location'      => null,
             'to_location'        => null,
-            'delivery_location'  => null,
-            'delivery_time'      => null,
-            'requested_date'     => null,
-            'rental_start_at'    => null,
-            'rental_end_at'      => null,
+            'delivery_location'  => $request->input('delivery_location'),
+            'delivery_time'      => $request->input('delivery_time'),
+            'requested_date'     => $request->input('requested_date'),
+            'rental_start_at'    => $request->input('rental_start_at'),
+            'rental_end_at'      => $request->input('rental_end_at'),
         ];
 
         $order = CarServiceOrder::create($payload);
@@ -81,6 +81,7 @@ class CarServiceOrderController extends Controller
         if ($request->has('client_id')) { $query->where('client_id', $request->client_id); }
         if ($request->has('provider_id')) { $query->where('provider_id', $request->provider_id); }
         if ($request->has('status')) { $query->where('status', $request->status); }
+        if ($request->has('order_type')) { $query->where('order_type', $request->order_type); }
         $orders = $query->with(['client', 'provider', 'carRental', 'offers', 'statusHistories'])->orderBy('created_at', 'desc')->get();
         return response()->json(['status' => true, 'orders' => $orders]);
     }
@@ -158,6 +159,49 @@ class CarServiceOrderController extends Controller
         
         $this->sendCarOrderNotifications($order, 'accepted');
         return response()->json(['status' => true, 'message' => 'تم قبول العرض، والطلب جاهز للتنفيذ', 'order' => $order]);
+    }
+
+    /**
+     * [مقدم خدمة] قبول الطلب بدون تفاوض (تعيين مقدم الخدمة واعتماد الطلب).
+     */
+    public function acceptByProvider(Request $request, $id)
+    {
+        $order = CarServiceOrder::findOrFail($id);
+        if (!in_array($order->status, ['pending_provider', 'negotiation'])) {
+            return response()->json(['status' => false, 'message' => 'لا يمكن قبول هذا الطلب في حالته الحالية'], 409);
+        }
+
+        $order->provider_id = $order->provider_id ?? Auth::id();
+        if ($request->filled('agreed_price')) {
+            $order->agreed_price = $request->input('agreed_price');
+        }
+        $order->status = 'accepted';
+        $order->accepted_at = now();
+        $order->save();
+
+        OrderStatusHistory::create(['order_id' => $order->id, 'status' => 'accepted', 'changed_by' => Auth::id(), 'note' => 'قبول الطلب من مقدم الخدمة بدون تفاوض']);
+        $this->sendCarOrderNotifications($order, 'accepted');
+        return response()->json(['status' => true, 'message' => 'تم قبول الطلب بنجاح', 'order' => $order]);
+    }
+
+    /**
+     * [أدمن] جلب كل طلبات التأجير مع تفاصيلها وحالاتها.
+     */
+    public function adminIndex(Request $request)
+    {
+        $query = CarServiceOrder::query()->where('order_type', 'rent');
+        if ($request->has('status')) { $query->where('status', $request->status); }
+        if ($request->has('car_rental_id')) { $query->where('car_rental_id', $request->car_rental_id); }
+        $orders = $query->with(['client', 'provider', 'carRental', 'offers', 'statusHistories'])->orderBy('created_at', 'desc')->get();
+
+        // إضافة علم يوضح هل الطلب جديد أو تم أخذه
+        $orders = $orders->map(function ($order) {
+            $order->is_new = ($order->status === 'pending_admin');
+            $order->is_taken = ($order->status === 'accepted' && !empty($order->provider_id));
+            return $order;
+        });
+
+        return response()->json(['status' => true, 'orders' => $orders]);
     }
 
     /**
