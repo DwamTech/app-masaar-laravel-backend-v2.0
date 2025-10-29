@@ -64,6 +64,8 @@ class PropertyController extends Controller
             $validated['view_count'] = 0;
 
             $property = Property::create($validated);
+            // تأكيد تحديث كود العقار النهائي بعد حدث created
+            $property->refresh();
 
             DB::commit();
 

@@ -35,6 +35,7 @@ class UpdatePropertyRequest extends FormRequest
                 Rule::unique('properties', 'property_code')->ignore($propertyId)
             ],
             'advertiser_type' => 'sometimes|required|in:owner,broker,developer',
+            'listing_purpose' => 'sometimes|required|in:sale,rent',
             
             // معلومات الاتصال
             'contact_info' => 'sometimes|required|array',
@@ -100,6 +101,8 @@ class UpdatePropertyRequest extends FormRequest
             'currency.required' => 'العملة مطلوبة',
             'advertiser_type.required' => 'نوع المعلن مطلوب',
             'advertiser_type.in' => 'نوع المعلن يجب أن يكون أحد القيم المحددة',
+            'listing_purpose.required' => 'الغرض من العرض (بيع/إيجار) مطلوب',
+            'listing_purpose.in' => 'الغرض يجب أن يكون إما sale أو rent',
             
             'contact_info.required' => 'معلومات الاتصال مطلوبة',
             'contact_info.phone.required_with' => 'رقم الهاتف مطلوب',

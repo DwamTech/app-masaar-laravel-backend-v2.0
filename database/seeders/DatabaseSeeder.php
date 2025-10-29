@@ -8,6 +8,7 @@ use Database\Seeders\NormalUsersSeeder;
 use Database\Seeders\RealEstateUsersSeeder;
 use Database\Seeders\CarRentalUsersSeeder;
 use Database\Seeders\RestaurantUsersSeeder;
+use Database\Seeders\PropertiesSeeder;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -39,6 +40,7 @@ class DatabaseSeeder extends Seeder
             RealEstateUsersSeeder::class,
             CarRentalUsersSeeder::class,
             RestaurantUsersSeeder::class,
+            PropertiesSeeder::class,
         ]);
     }
 }

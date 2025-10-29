@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Property extends Model
 {
+    protected $appends = [
+        'coordinates',
+        'formatted_address',
+        'property_area',
+    ];
+
     protected $fillable = [
         'title',
         'ownership_type',
@@ -28,6 +34,7 @@ class Property extends Model
         'price_per_square_meter',
         'payment_method',
         'property_status',
+        'listing_purpose',
         'developer_name',
         'logo_url',
         'features',
@@ -144,7 +151,7 @@ class Property extends Model
 
     public function getFormattedAddressAttribute()
     {
-        return $this->location['formattedAddress'] ?? null;
+        return $this->location['formatted_address'] ?? ($this->location['formattedAddress'] ?? null);
     }
 
     public function getCoordinatesAttribute()
@@ -153,6 +160,11 @@ class Property extends Model
             'latitude' => $this->location['latitude'] ?? null,
             'longitude' => $this->location['longitude'] ?? null,
         ];
+    }
+
+    public function getPropertyAreaAttribute()
+    {
+        return $this->size_in_sqm;
     }
 
     // Boot method لتعيين القيم التلقائية
@@ -184,6 +196,14 @@ class Property extends Model
             // حساب price_per_square_meter تلقائياً
             if ($property->property_price && $property->size_in_sqm) {
                 $property->price_per_square_meter = $property->property_price / $property->size_in_sqm;
+            }
+        });
+
+        static::created(function ($property) {
+            // تحديث الكود النهائي ليصبح بصيغة id_{id}
+            if ($property->id && (!str_starts_with($property->property_code, 'id_') || $property->property_code !== ('id_' . $property->id))) {
+                $property->property_code = 'id_' . $property->id;
+                $property->saveQuietly();
             }
         });
 
