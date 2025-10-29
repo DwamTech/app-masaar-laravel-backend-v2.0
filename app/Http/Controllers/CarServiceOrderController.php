@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CarServiceOrder;
+use App\Models\CarRental;
 use App\Models\OrderOffer;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
@@ -21,15 +22,10 @@ class CarServiceOrderController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'car_rental_id' => 'required|exists:car_rentals,id',
-            'order_type'    => 'required|in:rent,ride',
-            'car_category'  => 'nullable|string|max:255',
-            'payment_method'=> 'required|in:cash,bank_transfer',
-            'requested_price'=> 'nullable|numeric',
-            'from_location' => 'required|string|max:255',
-            'to_location'   => 'required|string|max:255',
-            'delivery_time' => 'nullable|date',
-            'requested_date'=> 'nullable|date',
+            'car_rental_id'     => 'required|exists:car_rentals,id',
+            'provider_type'     => 'required|in:office,person',
+            // بقية الحقول تُزال من الطلب وتُضبط افتراضياً إن لزم
+            'requested_price'   => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -37,13 +33,37 @@ class CarServiceOrderController extends Controller
         }
 
         $user = auth()->user();
-        $orderType = $request->input('order_type');
-        $initialStatus = ($orderType === 'rent') ? 'pending_admin' : 'pending_provider';
+        // هذا التدفق هو للتأجير فقط
+        $orderType = 'rent';
+        $initialStatus = 'pending_admin';
 
-        $order = CarServiceOrder::create(array_merge($request->all(), [
-            'client_id' => $user->id,
-            'status'    => $initialStatus,
-        ]));
+        // نوع المزود يحدده العميل: office أو person
+        $providerType = $request->input('provider_type');
+
+        $payload = [
+            'client_id'          => $user->id,
+            'car_rental_id'      => $request->input('car_rental_id'),
+            'provider_id'        => $request->input('provider_id'),
+            'order_type'         => $orderType,
+            'provider_type'      => $providerType,
+            'with_driver'        => false,
+            'car_category'       => $request->input('car_category', 'economy'),
+            'car_model'          => null,
+            'payment_method'     => $request->input('payment_method', 'cash'),
+            'rental_period_type' => null,
+            'rental_duration'    => null,
+            'status'             => $initialStatus,
+            'requested_price'    => $request->input('requested_price'),
+            'from_location'      => null,
+            'to_location'        => null,
+            'delivery_location'  => null,
+            'delivery_time'      => null,
+            'requested_date'     => null,
+            'rental_start_at'    => null,
+            'rental_end_at'      => null,
+        ];
+
+        $order = CarServiceOrder::create($payload);
 
         OrderStatusHistory::create(['order_id' => $order->id, 'status' => $initialStatus, 'changed_by' => $user->id, 'note' => 'تم إنشاء الطلب.']);
         

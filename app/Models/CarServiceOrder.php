@@ -12,18 +12,32 @@ class CarServiceOrder extends Model
         'car_rental_id',
         'provider_id',
         'order_type',
+        'provider_type',
+        'with_driver',
         'car_category',
+        'car_model',
         'payment_method',
+        'rental_period_type',
+        'rental_duration',
         'status',
         'requested_price',
         'agreed_price',
         'from_location',
         'to_location',
+        'delivery_location',
         'delivery_time',
         'requested_date',
+        'rental_start_at',
+        'rental_end_at',
         'provider_offer_date',
         'accepted_at',
         'rejected_at',
+    ];
+
+    protected $casts = [
+        'with_driver' => 'boolean',
+        'rental_start_at' => 'datetime',
+        'rental_end_at' => 'datetime',
     ];
 
     // العلاقات

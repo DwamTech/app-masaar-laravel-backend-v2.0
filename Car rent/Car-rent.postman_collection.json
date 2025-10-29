@@ -1,0 +1,46 @@
+{
+  "info": {
+    "name": "Car Rent - User Flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "مجموعة واجهات طلب تأجير السيارة من المستخدم وجلب الموديلات."
+  },
+  "item": [
+    {
+      "name": "Create Car Rent Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"car_rental_id\": 12,\n  \"provider_type\": \"office\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/car-orders",
+          "host": ["{{base_url}}"],
+          "path": ["api", "car-orders"]
+        }
+      }
+    },
+    {
+      "name": "Get Car Models",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}", "type": "text"}
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/cars/models",
+          "host": ["{{base_url}}"],
+          "path": ["api", "cars", "models"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "http://localhost"},
+    {"key": "token", "value": "PASTE_TOKEN_HERE"}
+  ]
+}
