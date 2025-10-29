@@ -174,9 +174,13 @@
     }
     
     .nav-pills .nav-link.active {
-        background: var(--primary-orange);
-        color: var(--white);
-        box-shadow: 0 2px 8px rgba(252, 135, 0, 0.3);
+        background: var(--white) !important;
+        color: var(--primary-orange) !important;
+        box-shadow: 0 4px 12px rgba(252, 135, 0, 0.5) !important;
+        transform: translateY(-1px) !important;
+        font-weight: 700 !important;
+        border: 3px solid var(--primary-orange) !important;
+        position: relative !important;
     }
     
     .table-container {
@@ -1532,7 +1536,7 @@ async function fetchUsers(auto = false) {
         if (!res.ok) { console.error("API responded with status:", res.status); return; }
         const data = await res.json();
         users = Array.isArray(data.users) ? data.users : [];
-        userTypes = [...new Set(users.map(u => u.user_type))];
+        userTypes = [...new Set(users.map(u => u.user_type))].filter(type => type !== 'admin');
         if (!currentType || !userTypes.includes(currentType)) { currentType = userTypes[0] || ''; }
         renderTabs();
         renderTable();
@@ -1576,7 +1580,7 @@ function renderTable() {
     if (searchTerm) {
         filterUsers(searchTerm);
     } else {
-        const filtered = users.filter(u => u.user_type === currentType);
+        const filtered = users.filter(u => u.user_type === currentType && u.user_type !== 'admin');
         renderFilteredTable(filtered);
     }
     updateStatistics();
@@ -2050,7 +2054,7 @@ function setupSearch() {
 
 // فلترة المستخدمين حسب النص
 function filterUsers(searchTerm) {
-    const filtered = users.filter(u => u.user_type === currentType);
+    const filtered = users.filter(u => u.user_type === currentType && u.user_type !== 'admin');
     let searchFiltered = filtered;
     
     if (searchTerm) {

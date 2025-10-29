@@ -332,8 +332,9 @@
     }
     
     .nav-pills .nav-link.active {
-        background: var(--primary-orange);
-        color: var(--white);
+        background: var(--white);
+        color: var(--primary-orange);
+        border: 2px solid var(--primary-orange);
         box-shadow: 0 2px 8px rgba(252, 135, 0, 0.3);
     }
         /* تصميم مربع البحث المتقدم */
@@ -1005,15 +1006,26 @@
     <div class="d-flex">
         <nav class="sidebar d-flex flex-column">
             <div class="logo-section">
-                <div class="logo">
-                    <img src="https://msar.app/storage/uploads/images/masar.png" alt="Masar Logo" class="logo-image">
+                <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
+                    <!-- Logo Container -->
+                    <div style="background: white; border-radius: 15px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); flex-shrink: 0;">
+                        <img src="https://msar.app/storage/uploads/images/masar.png" alt="Masar Logo" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">
+                    </div>
+                    
+                    <!-- Text Content -->
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 90px;">
+                        <!-- Main Title -->
+                        <h2 style="margin: 0 0 6px 0; font-size: 2rem; font-weight: 800; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1.2;">مسار</h2>
+                        
+                        <!-- Subtitle -->
+                        <h5 style="margin: 0 0 12px 0; font-size: 1.1rem; font-weight: 500; color: rgba(255,255,255,0.9); line-height: 1.3;">لوحة التحكم</h5>
+                        
+                        <!-- Email -->
+                        <div id="userEmail" style="font-size: 0.9rem; color: rgba(255,255,255,0.8); font-weight: 400; line-height: 1.4;">
+                            <!-- سيتم عرض الإيميل هنا -->
+                        </div>
+                    </div>
                 </div>
-                <h4>مسار</h4>
-                <small style="opacity: 0.8;">لوحة التحكم</small>
-            </div>
-            
-            <div class="user-info" id="userInfo">
-                <!-- سيتم تعبئة معلومات المستخدم هنا -->
             </div>
             
             <ul class="nav nav-pills flex-column mb-auto">
@@ -1088,14 +1100,11 @@
     </div>
 
     <script>
-        // عرض اسم المستخدم من localStorage
+        // عرض الإيميل في المكان الجديد
         var user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
         if (user) {
-            document.getElementById('userInfo').innerHTML = `
-                <div>
-                    <strong>${user.name}</strong><br>
-                    <small>${user.email}</small>
-                </div>
+            document.getElementById('userEmail').innerHTML = `
+                <small style="opacity: 0.8; font-size: 0.8rem;">${user.email}</small>
             `;
         }
 

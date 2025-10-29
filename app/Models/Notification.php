@@ -13,6 +13,12 @@ class Notification extends Model
         'message',
         'is_read',
         'link',
+        'data',
+    ];
+
+    protected $casts = [
+        'data' => 'array',
+        'is_read' => 'boolean',
     ];
 
     // العلاقة مع المستخدم
