@@ -20,8 +20,7 @@ class NotificationController extends Controller
     }
 
     // تعيين إشعار كمقروء
-    public function markAsRead($id)
-    {
+    public function markAsRead($id){
         $user = auth()->user();
         $notification = $user->notifications()->findOrFail($id);
         $notification->update(['is_read' => true]);

@@ -90,4 +90,18 @@ class CarController extends Controller
         ]);
     }
 
+    // جلب جميع موديلات السيارات المتاحة على النظام
+    public function models()
+    {
+        $models = Car::select('car_model')
+            ->distinct()
+            ->orderBy('car_model')
+            ->pluck('car_model');
+
+        return response()->json([
+            'status' => true,
+            'models' => $models
+        ]);
+    }
+
 }

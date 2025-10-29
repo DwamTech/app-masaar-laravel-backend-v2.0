@@ -144,6 +144,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cars
     Route::get('/car-rentals/{carRentalId}/cars', [CarController::class, 'index']);
+    Route::get('/cars/models', [CarController::class, 'models']);
     Route::post('/cars', [CarController::class, 'store']);
     Route::put('/cars/{id}', [CarController::class, 'update']);
     Route::delete('/cars/{id}', [CarController::class, 'destroy']);
