@@ -7,6 +7,7 @@ use App\Models\Property;
 use Illuminate\Http\Request;
 use App\Support\Notifier;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
@@ -16,9 +17,12 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'property_id' => 'required|exists:properties,id',
-            'date'        => 'required|date_format:Y-m-d H:i',
-            'note'        => 'nullable|string|max:1000',
+            'property_id'    => 'required|exists:properties,id',
+            // دعم إما تاريخ مفرد (قديم) أو نافذة زمنية مفضلة (جديد)
+            'date'           => 'required_without_all:preferred_from,preferred_to|date_format:Y-m-d H:i',
+            'preferred_from' => 'required_without:date|nullable|date_format:Y-m-d H:i',
+            'preferred_to'   => 'required_with:preferred_from|nullable|date_format:Y-m-d H:i|after:preferred_from',
+            'note'           => 'nullable|string|max:1000',
         ]);
 
         $property = Property::findOrFail($validated['property_id']);
@@ -30,11 +34,16 @@ class AppointmentController extends Controller
             ], 422);
         }
 
+        // التعيين الأولي لتاريخ الموعد: إذا أرسل تاريخ محدد نستخدمه، وإلا نستخدم بداية النافذة
+        $initialDate = $validated['date'] ?? $validated['preferred_from'] ?? null;
+
         $appointment = Appointment::create([
             'property_id'         => $property->id,
             'customer_id'         => $request->user()->id,
             'provider_id'         => $property->user_id,
-            'appointment_datetime'=> $validated['date'],
+            'appointment_datetime'=> $initialDate,
+            'preferred_from'      => $validated['preferred_from'] ?? null,
+            'preferred_to'        => $validated['preferred_to'] ?? null,
             'note'                => $validated['note'] ?? null,
             'status'              => 'pending',
             'last_action_by'      => 'customer',
@@ -60,6 +69,91 @@ class AppointmentController extends Controller
             'message'     => 'تم إرسال طلب المعاينة للإدارة.',
             'appointment' => $appointment
         ], 201);
+    }
+
+    /**
+     * جدولة الموعد من قبل الأدمن داخل نافذة العميل المفضلة.
+     */
+    public function adminSchedule(Request $request, $id)
+    {
+        $request->validate([
+            'scheduled_at' => 'required|date_format:Y-m-d H:i',
+            'admin_note'   => 'nullable|string|max:1000',
+        ]);
+
+        $user = $request->user();
+        if (!$user || $user->user_type !== 'admin') {
+            return response()->json(['status' => false, 'message' => 'غير مصرح'], 403);
+        }
+
+        $appointment = Appointment::findOrFail($id);
+
+        $scheduledAt = Carbon::createFromFormat('Y-m-d H:i', $request->input('scheduled_at'));
+
+        // إذا كانت نافذة التفضيل موجودة، تأكد من التقيّد بها
+        if ($appointment->preferred_from && $appointment->preferred_to) {
+            $from = Carbon::parse($appointment->preferred_from);
+            $to   = Carbon::parse($appointment->preferred_to);
+            if ($scheduledAt->lt($from) || $scheduledAt->gt($to)) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'يجب أن يكون التاريخ المجدول داخل نافذة العميل المفضلة.'
+                ], 422);
+            }
+        }
+
+        $appointment->appointment_datetime = $scheduledAt->format('Y-m-d H:i');
+        if ($request->filled('admin_note')) {
+            $appointment->admin_note = $request->input('admin_note');
+        }
+        $appointment->status = 'admin_approved';
+        $appointment->last_action_by = 'admin';
+        $appointment->updated_by = $user->id;
+        $appointment->save();
+
+        $this->sendAppointmentNotifications($appointment->fresh(), 'admin_approved');
+
+        return response()->json([
+            'status'      => true,
+            'message'     => 'تم جدولة الموعد بنجاح وفي انتظار موافقة مقدم الخدمة.',
+            'appointment' => $appointment
+        ]);
+    }
+
+    /**
+     * قرار مقدم الخدمة بالموافقة أو الرفض بعد جدولة الأدمن.
+     */
+    public function providerDecision(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'decision'      => 'required|in:approve,reject',
+            'provider_note' => 'nullable|string|max:1000',
+        ]);
+
+        $appointment = Appointment::findOrFail($id);
+        $user = $request->user();
+        if ($user->id !== (int) $appointment->provider_id) {
+            return response()->json(['status' => false, 'message' => 'غير مصرح'], 403);
+        }
+
+        $newStatus = $validated['decision'] === 'approve' ? 'provider_approved' : 'rejected';
+        $payload = [
+            'status'         => $newStatus,
+            'last_action_by' => 'provider',
+            'updated_by'     => $user->id,
+        ];
+        if (array_key_exists('provider_note', $validated)) {
+            $payload['provider_note'] = $validated['provider_note'];
+        }
+
+        $appointment->update($payload);
+        $this->sendAppointmentNotifications($appointment->fresh(), $newStatus);
+
+        return response()->json([
+            'status'      => true,
+            'message'     => $newStatus === 'provider_approved' ? 'تمت الموافقة على الموعد.' : 'تم رفض الموعد.',
+            'appointment' => $appointment
+        ]);
     }
 
     /**

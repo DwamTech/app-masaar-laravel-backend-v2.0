@@ -114,6 +114,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
     Route::put('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
+    Route::put('/appointments/{id}/admin-schedule', [AppointmentController::class, 'adminSchedule']);
+    Route::put('/appointments/{id}/provider-decision', [AppointmentController::class, 'providerDecision']);
     Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
     Route::get('/provider-appointments', [AppointmentController::class, 'providerAppointments']);
 

@@ -11,12 +11,20 @@ class Appointment extends Model
         'customer_id',
         'provider_id',
         'appointment_datetime',
+        'preferred_from',
+        'preferred_to',
         'note',
         'admin_note',
         'provider_note',
         'status',
         'last_action_by',
         'updated_by',
+    ];
+
+    protected $casts = [
+        'appointment_datetime' => 'datetime',
+        'preferred_from' => 'datetime',
+        'preferred_to' => 'datetime',
     ];
 
     public function property()    { return $this->belongsTo(Property::class); }
