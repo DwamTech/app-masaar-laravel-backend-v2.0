@@ -29,7 +29,9 @@ class UsersByTypeSeeder extends Seeder
                 'email' => 'normal@example.com',
                 'user_type' => 'normal',
                 'approved' => true,
-                'available' => false,
+                'available' => true,
+                'account_active' => true,
+                'email_verified' => true,
             ],
             [
                 'name' => 'Real Estate Office',
@@ -37,6 +39,8 @@ class UsersByTypeSeeder extends Seeder
                 'user_type' => 'real_estate_office',
                 'approved' => true,
                 'available' => true,
+                'account_active' => true,
+                'email_verified' => true,
             ],
             [
                 'name' => 'Real Estate Individual',
@@ -44,6 +48,8 @@ class UsersByTypeSeeder extends Seeder
                 'user_type' => 'real_estate_individual',
                 'approved' => true,
                 'available' => false,
+                'account_active' => true,
+                'email_verified' => true,
             ],
             [
                 'name' => 'Restaurant Account',
@@ -51,6 +57,8 @@ class UsersByTypeSeeder extends Seeder
                 'user_type' => 'restaurant',
                 'approved' => true,
                 'available' => false,
+                'account_active' => true,
+                'email_verified' => true,
             ],
             [
                 'name' => 'Car Rental Office',
@@ -58,6 +66,17 @@ class UsersByTypeSeeder extends Seeder
                 'user_type' => 'car_rental_office',
                 'approved' => true,
                 'available' => true,
+                'account_active' => true,
+                'email_verified' => true,
+            ],
+            [
+                'name' => 'Car Rental Office 2',
+                'email' => 'car_rental_office2@example.com',
+                'user_type' => 'car_rental_office',
+                'approved' => true,
+                'available' => true,
+                'account_active' => true,
+                'email_verified' => true,
             ],
             [
                 'name' => 'Driver Account',
@@ -65,6 +84,8 @@ class UsersByTypeSeeder extends Seeder
                 'user_type' => 'driver',
                 'approved' => true,
                 'available' => true,
+                'account_active' => true,
+                'email_verified' => true,
             ],
         ];
 
@@ -94,7 +115,22 @@ class UsersByTypeSeeder extends Seeder
                 $values['is_email_verified'] = $def['email_verified'] ? 1 : 0;
             }
 
-            User::firstOrCreate($attributes, $values);
+            // Create if missing
+            $user = User::firstOrCreate($attributes, $values);
+
+            // Ensure activation for existing users without overriding other fields
+            $needsSave = false;
+            if (Schema::hasColumn('users', 'account_active') && !$user->account_active) {
+                $user->account_active = 1;
+                $needsSave = true;
+            }
+            if (Schema::hasColumn('users', 'is_email_verified') && !$user->is_email_verified) {
+                $user->is_email_verified = 1;
+                $needsSave = true;
+            }
+            if ($needsSave) {
+                $user->save();
+            }
         }
     }
 }

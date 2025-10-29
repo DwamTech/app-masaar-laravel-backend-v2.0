@@ -357,6 +357,9 @@ Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function
         Route::get('/', [AdminSecurityPermitController::class, 'getNationalities']);
         Route::put('/{id}', [AdminSecurityPermitController::class, 'updateNationality']);
     });
+
+    // Car Service Orders - Admin listing
+    Route::get('/car-orders', [CarServiceOrderController::class, 'adminIndex']);
 });
 
 // ======= Menu Sections and Items (Public) =======
@@ -400,5 +403,4 @@ Route::post('/{id}/read', [ConversationController::class, 'markAsRead']);
 // Password reset (Public)
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
-    // Car Service Orders - Admin
-    Route::get('/car-orders', [CarServiceOrderController::class, 'adminIndex']);
+    // (removed) Car Service Orders - Admin duplicate route to avoid overriding provider index

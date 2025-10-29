@@ -22,8 +22,10 @@ class CarServiceOrderController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'car_rental_id'     => 'required|exists:car_rentals,id',
-            'provider_type'     => 'required|in:office,person',
+            // لا يُشترط تحديد مكتب التأجير عند إنشاء الطلب؛ يتم تعيينه عند قبول مقدم الخدمة
+            'car_rental_id'     => 'nullable|exists:car_rentals,id',
+            // نوع مقدم الخدمة اختياري، ويفترض "office" افتراضياً
+            'provider_type'     => 'nullable|in:office,person',
             // بقية الحقول تُزال من الطلب وتُضبط افتراضياً إن لزم
             'requested_price'   => 'nullable|numeric',
         ]);
@@ -35,14 +37,17 @@ class CarServiceOrderController extends Controller
         $user = auth()->user();
         // هذا التدفق هو للتأجير فقط
         $orderType = 'rent';
-        $initialStatus = 'pending_admin';
+        // نبدأ مباشرةً في حالة انتظار مقدم الخدمة، ليظهر الطلب لكل المكاتب فوراً
+        $initialStatus = 'pending_provider';
 
-        // نوع المزود يحدده العميل: office أو person
-        $providerType = $request->input('provider_type');
+        // نوع المزود يحدده العميل: office أو person (افتراضي office)
+        $providerType = $request->input('provider_type', 'office');
 
         $payload = [
             'client_id'          => $user->id,
+            // يُترك car_rental_id فارغاً عند الإنشاء ليُحدد عند قبول المكتب
             'car_rental_id'      => $request->input('car_rental_id'),
+            // لا يوجد مقدم نهائي عند الإنشاء
             'provider_id'        => $request->input('provider_id'),
             'order_type'         => $orderType,
             'provider_type'      => $providerType,
@@ -171,7 +176,17 @@ class CarServiceOrderController extends Controller
             return response()->json(['status' => false, 'message' => 'لا يمكن قبول هذا الطلب في حالته الحالية'], 409);
         }
 
-        $order->provider_id = $order->provider_id ?? Auth::id();
+        $currentUser = Auth::user();
+        // إذا كان القابل مكتب تأجير، قم بتعيين car_rental_id الخاص به على الطلب
+        if ($currentUser && $currentUser->user_type === 'car_rental_office') {
+            $myCarRental = $currentUser->car_rental ?? $currentUser->carRental ?? null;
+            if ($myCarRental && empty($order->car_rental_id)) {
+                $order->car_rental_id = $myCarRental->id;
+            }
+        }
+
+        // تعيين مقدم التنفيذ النهائي إن لزم (قد يكون سائقاً أو مستخدماً يمثل المكتب)
+        $order->provider_id = $order->provider_id ?? ($currentUser ? $currentUser->id : Auth::id());
         if ($request->filled('agreed_price')) {
             $order->agreed_price = $request->input('agreed_price');
         }
@@ -213,7 +228,8 @@ class CarServiceOrderController extends Controller
         $order->load(['client', 'provider', 'carRental.user']);
         $customer = $order->client;
         $provider = $order->provider;
-        $rentalOwner = $order->carRental->user;
+        // قد يكون car_rental_id غير معيّن عند الإنشاء؛ نتعامل مع القيمة بشكل آمن
+        $rentalOwner = $order->carRental ? $order->carRental->user : null;
 
         Log::info("[Car Order Notification] Customer found: " . ($customer ? "ID {$customer->id}" : 'NULL'));
         Log::info("[Car Order Notification] Provider (final driver) found: " . ($provider ? "ID {$provider->id}" : 'NULL'));
@@ -223,11 +239,17 @@ class CarServiceOrderController extends Controller
         try {
             switch ($triggerStatus) {
                 case 'created':
-                    if ($customer) $this->trySendNotification($customer, 'car_order_placed', 'تم استلام طلبك', 'طلبك رقم #' . $order->id . ' قيد المراجعة.');
-                    if ($order->order_type === 'ride' && $rentalOwner) $this->trySendNotification($rentalOwner, 'new_ride_request', 'يوجد طلب توصيلة جديد!', 'لديك طلب توصيلة جديد.');
-                    elseif ($order->order_type === 'rent') {
-                        $admins = User::where('user_type', 'admin')->get();
-                        foreach ($admins as $admin) $this->trySendNotification($admin, 'new_rent_request', 'طلب حجز سيارة جديد', 'يوجد طلب حجز سيارة جديد.');
+                    if ($customer) {
+                        $this->trySendNotification($customer, 'car_order_placed', 'تم استلام طلبك', 'طلبك رقم #' . $order->id . ' قيد المراجعة.');
+                    }
+                    if ($order->order_type === 'ride' && $rentalOwner) {
+                        $this->trySendNotification($rentalOwner, 'new_ride_request', 'يوجد طلب توصيلة جديد!', 'لديك طلب توصيلة جديد.');
+                    } elseif ($order->order_type === 'rent') {
+                        // إخطار جميع مكاتب التأجير بوجود طلب جديد متاح
+                        $rentalOffices = User::where('user_type', 'car_rental_office')->get();
+                        foreach ($rentalOffices as $officeUser) {
+                            $this->trySendNotification($officeUser, 'new_rent_request', 'طلب حجز سيارة جديد', 'يوجد طلب حجز سيارة جديد متاح في النظام.');
+                        }
                     }
                     break;
                 case 'pending_provider':
