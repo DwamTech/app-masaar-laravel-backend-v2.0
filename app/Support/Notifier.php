@@ -6,6 +6,7 @@ namespace App\Support;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use App\Events\NotificationReceived;
+use App\Events\UnreadNotificationsCountUpdated;
 
 class Notifier {
   public static function send(User $user, string $type, string $title, string $body, array $data=[], ?string $link=null): void {
@@ -15,6 +16,9 @@ class Notifier {
     // بث حدث الاستلام الفوري ليصل عبر Laravel Echo
     if ($notification) {
       event(new NotificationReceived($notification));
+      // بث عدد الإشعارات غير المقروءة المحدَّث
+      $unreadCount = $user->notifications()->where('is_read', false)->count();
+      event(new UnreadNotificationsCountUpdated($user->id, $unreadCount));
     }
 
     // إرسال Push Notification في حال تمكينها لدى المستخدم

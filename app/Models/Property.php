@@ -56,7 +56,8 @@ class Property extends Model
         'submitted_price',
         'is_ready',
         'real_estate_id',
-        'user_id'
+        'user_id',
+        'old_price'
     ];
 
     protected $casts = [
@@ -77,6 +78,7 @@ class Property extends Model
         'is_featured' => 'boolean',
         'is_ready' => 'boolean',
         'the_best' => 'boolean',
+
     ];
 
     // علاقة العقار بمقدم الخدمة
