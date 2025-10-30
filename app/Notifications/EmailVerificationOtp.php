@@ -49,20 +49,18 @@ class EmailVerificationOtp extends Notification implements ShouldQueue
      */
     public function toMail($notifiable): MailMessage
     {
-        $expiryMinutes = Carbon::now()->diffInMinutes($this->expiresAt);
-        
+        // نحسب الوقت المتبقي بالدقائق بشكل صحيح بدون كسور
+        $secondsLeft = Carbon::now()->diffInSeconds($this->expiresAt);
+        $expiryMinutes = max(1, (int) ceil($secondsLeft / 60));
+
+        // نستخدم قالب مخصص لعرض بريد أنيق بدون لوجو Laravel المكسور
         return (new MailMessage)
-            ->subject('تأكيد البريد الإلكتروني - رمز التحقق')
-            ->greeting('مرحباً ' . $this->userName . '!')
-            ->line('شكراً لك على التسجيل في تطبيقنا.')
-            ->line('لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق التالي:')
-            ->line('')
-            ->line('**' . $this->otp . '**')
-            ->line('')
-            ->line('هذا الرمز صالح لمدة ' . $expiryMinutes . ' دقائق فقط.')
-            ->line('إذا لم تقم بإنشاء حساب، يرجى تجاهل هذا البريد الإلكتروني.')
-            ->line('لا تشارك هذا الرمز مع أي شخص آخر لحماية حسابك.')
-            ->salutation('مع أطيب التحيات،\nفريق التطبيق');
+            ->subject('رمز التحقق لتأكيد البريد الإلكتروني')
+            ->view('emails.verify-email-otp', [
+                'otp' => $this->otp,
+                'expiryMinutes' => $expiryMinutes,
+                'userName' => $this->userName,
+            ]);
     }
 
     /**

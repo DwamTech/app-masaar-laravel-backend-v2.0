@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\RealEstateAnalyticsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SecurityPermitController;
 use App\Http\Controllers\Admin\AdminSecurityPermitController;
@@ -109,6 +110,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/properties/{id}', [PropertyController::class, 'destroy']);
     // List only my properties (authenticated owner)
     Route::get('/my/properties', [PropertyController::class, 'myProperties']);
+
+    // Real Estate Analytics (Service Provider)
+    Route::get('/real-estate/analytics', [RealEstateAnalyticsController::class, 'overview']);
 
     // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
