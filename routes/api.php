@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\MyOrdersController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\OtpAuthController;
+use App\Http\Controllers\RealEstateOfficesDetailController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -113,6 +114,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Real Estate Analytics (Service Provider)
     Route::get('/real-estate/analytics', [RealEstateAnalyticsController::class, 'overview']);
+
+    // Real Estate Office Details - show & update (multipart)
+    Route::get('/real-estate-office-details/{id}', [RealEstateOfficesDetailController::class, 'show']);
+    Route::match(['put','patch','post'], '/real-estate-office-details/{id}', [RealEstateOfficesDetailController::class, 'update']);
 
     // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
