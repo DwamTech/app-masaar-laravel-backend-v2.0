@@ -36,6 +36,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\OtpAuthController;
 use App\Http\Controllers\RealEstateOfficesDetailController;
+use App\Http\Controllers\FavoritesController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -312,6 +313,15 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['status' => true, 'enabled' => $user->push_notifications_enabled]);
     });
     // ===== End Device Tokens & Push Prefs =====
+
+    // ===== Favorites (User-specific) =====
+    Route::prefix('favorites')->group(function () {
+        Route::get('/', [FavoritesController::class, 'index']);
+        Route::post('/', [FavoritesController::class, 'store']);
+        Route::delete('/', [FavoritesController::class, 'destroy']);
+        Route::get('/check', [FavoritesController::class, 'check']);
+        Route::get('/item', [FavoritesController::class, 'item']);
+    });
 });
 
 // ======= Admin Routes (extra) =======

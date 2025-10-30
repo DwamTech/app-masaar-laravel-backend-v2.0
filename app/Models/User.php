@@ -209,4 +209,12 @@ class User extends Authenticatable
     {
         return $this->driverCars()->first();
     }
+
+    /**
+     * علاقة المفضلة الخاصة بالمستخدم.
+     */
+    public function favorites()
+    {
+        return $this->hasMany(\App\Models\Favorite::class, 'user_id');
+    }
 }
