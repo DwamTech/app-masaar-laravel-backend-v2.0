@@ -51,7 +51,7 @@ class EmailVerificationOtp extends Notification implements ShouldQueue
     {
         // نحسب الوقت المتبقي بالدقائق بشكل صحيح بدون كسور
         $secondsLeft = Carbon::now()->diffInSeconds($this->expiresAt);
-        $expiryMinutes = max(1, (int) ceil($secondsLeft / 60));
+        $expiryMinutes = max(1, (int) ceil($secondsLeft / 59));
 
         // نستخدم قالب مخصص لعرض بريد أنيق بدون لوجو Laravel المكسور
         return (new MailMessage)
