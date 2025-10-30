@@ -45,12 +45,11 @@ class RealEstateAnalyticsController extends Controller
         $topProperties = (clone $propertiesQuery)
             ->orderBy('view_count', 'desc')
             ->limit(6)
-            ->get(['title', 'view_count', 'view'])
+            ->get(['title', 'view_count'])
             ->map(function ($p) {
                 return [
                     'title' => $p->title,
-                    // نستخدم view_count الأساسي، وإن وُجد عمود قديم view نأخذ الأعلى
-                    'view' => (int) (isset($p->view_count) ? $p->view_count : ($p->view ?? 0)),
+                    'view' => (int) $p->view_count,
                 ];
             });
 
