@@ -148,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/restaurant/orders', [OrderController::class, 'restaurantOrders']);
     Route::post('/restaurant/orders/{order}/process', [OrderController::class, 'process']);
     Route::post('/restaurant/orders/{order}/complete', [OrderController::class, 'complete']);
+    Route::post('/restaurant/orders/{order}/reject', [OrderController::class, 'restaurantReject']);
 
     // Restaurant Profile
     Route::prefix('restaurant')->group(function () {

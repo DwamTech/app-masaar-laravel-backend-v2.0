@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 class OrderController extends Controller
 {
     /**
-     * [خاص بالعميل] إنشاء طلب جديد بحالة "مقبول تلقائياً".
+     * [خاص بالعميل] إنشاء طلب جديد بحالة "قيد المراجعة".
      */
     public function store(Request $request)
     {
@@ -46,7 +46,7 @@ class OrderController extends Controller
         $order = Order::create([
             'user_id' => $user->id,
             'restaurant_id' => $validatedData['restaurant_id'],
-            'status' => 'accepted_by_admin', // الطلب مقبول تلقائياً
+            'status' => 'pending', // الطلب قيد المراجعة من المطعم
             'order_number' => $orderNumber,
             'subtotal' => $subtotal,
             'delivery_fee' => $deliveryFee,
@@ -57,12 +57,12 @@ class OrderController extends Controller
         
         $order->items()->createMany($orderItemsData);
 
-        // إرسال إشعارات الموافقة مباشرة للعميل والمطعم
-        $this->sendOrderNotifications($order, 'accepted_by_admin');
+        // إرسال إشعار إنشاء الطلب وقيده للمراجعة من المطعم
+        $this->sendOrderNotifications($order, 'pending');
 
         return response()->json([
             'status' => true,
-            'message' => 'تم قبول طلبك بنجاح وجاري إرساله للمطعم.',
+            'message' => 'تم إرسال طلبك وجاري مراجعته من قبل المطعم.',
             'order' => $order->load('items')
         ], 201);
     }
@@ -135,12 +135,14 @@ class OrderController extends Controller
         if ($restaurantUser->user_type !== 'restaurant' || $restaurantUser->restaurantDetail?->id !== $order->restaurant_id) {
             return response()->json(['status' => false, 'message' => 'غير مصرح لك بتنفيذ هذا الإجراء.'], 403);
         }
-        if ($order->status !== 'accepted_by_admin') {
-            return response()->json(['status' => false, 'message' => 'يمكن فقط تنفيذ الطلبات التي تمت الموافقة عليها من الإدارة.'], 409);
+        // السماح ببدء التنفيذ (قبول المطعم) مباشرة من حالة الانتظار
+        if (!in_array($order->status, ['pending', 'accepted_by_admin'])) {
+            return response()->json(['status' => false, 'message' => 'يمكن فقط تنفيذ الطلبات التي هي قيد المراجعة أو تمت الموافقة عليها من الإدارة.'], 409);
         }
         $order->update(['status' => 'processing']);
+        // إشعار القبول للمستخدم (يُعتبر البدء في التجهيز قبولاً)
         $this->sendOrderNotifications($order, 'processing');
-        return response()->json(['status' => true, 'message' => 'تم بدء تنفيذ الطلب.', 'order' => $order]);
+        return response()->json(['status' => true, 'message' => 'تم قبول طلبك وسيتم البدء في التجهيز.', 'order' => $order]);
     }
 
     public function complete(Order $order)
@@ -168,6 +170,10 @@ class OrderController extends Controller
 
         try {
             switch ($newStatus) {
+                case 'pending':
+                    if ($customer) Notifier::send($customer, 'order_under_review', 'تم إرسال طلبك', 'تم إرسال طلبك رقم ' . $order->order_number . ' وجاري مراجعته من قبل المطعم.');
+                    if ($restaurantOwner) Notifier::send($restaurantOwner, 'new_order_for_restaurant', 'لديك طلب جديد', 'يوجد طلب جديد برقم ' . $order->order_number . ' بانتظار المراجعة والقبول أو الرفض.');
+                    break;
                 case 'accepted_by_admin':
                     if ($customer) Notifier::send($customer, 'order_accepted', 'تم قبول طلبك!', 'تمت الموافقة على طلبك رقم ' . $order->order_number . ' وجاري إرساله للمطعم.');
                     if ($restaurantOwner) Notifier::send($restaurantOwner, 'new_order_for_restaurant', 'لديك طلب جديد!', 'يوجد طلب جديد برقم ' . $order->order_number . ' بانتظار التنفيذ.');
@@ -177,14 +183,37 @@ class OrderController extends Controller
                     if ($customer) Notifier::send($customer, 'order_rejected', 'تم رفض طلبك', 'نأسف، لم نتمكن من قبول طلبك.' . $reason);
                     break;
                 case 'processing':
-                    if ($customer) Notifier::send($customer, 'order_processing', 'طلبك قيد التجهيز!', 'بدأ المطعم في تجهيز طلبك رقم ' . $order->order_number . '.');
+                    // نُعدّ بدء التجهيز كقبول من المطعم ونبلغ المستخدم بذلك
+                    if ($customer) Notifier::send($customer, 'order_accepted', 'تم قبول طلبك', 'تم قبول طلبك رقم ' . $order->order_number . ' وسيبدأ المطعم في التجهيز.');
                     break;
                 case 'completed':
                     if ($customer) Notifier::send($customer, 'order_completed', 'طلبك جاهز!', 'أصبح طلبك رقم ' . $order->order_number . ' جاهزاً للاستلام.');
+                    break;
+                case 'rejected_by_restaurant':
+                    $reason = $order->rejection_reason ? ' السبب: ' . $order->rejection_reason : '';
+                    if ($customer) Notifier::send($customer, 'order_rejected', 'تم رفض طلبك', 'نأسف، قام المطعم برفض طلبك رقم ' . $order->order_number . '.' . $reason);
                     break;
             }
         } catch (\Throwable $e) {
             Log::error("Failed to send notification for order #{$order->id} to status {$newStatus}: " . $e->getMessage());
         }
+    }
+
+    /**
+     * رفض الطلب من قبل المطعم.
+     */
+    public function restaurantReject(Request $request, Order $order)
+    {
+        $restaurantUser = Auth::user();
+        if ($restaurantUser->user_type !== 'restaurant' || $restaurantUser->restaurantDetail?->id !== $order->restaurant_id) {
+            return response()->json(['status' => false, 'message' => 'غير مصرح لك بتنفيذ هذا الإجراء.'], 403);
+        }
+        if (!in_array($order->status, ['pending', 'accepted_by_admin'])) {
+            return response()->json(['status' => false, 'message' => 'يمكن فقط رفض الطلبات التي هي قيد المراجعة أو تمت الموافقة عليها من الإدارة.'], 409);
+        }
+        $validated = $request->validate(['reason' => 'nullable|string|max:500']);
+        $order->update(['status' => 'rejected_by_restaurant', 'rejection_reason' => $validated['reason'] ?? null]);
+        $this->sendOrderNotifications($order, 'rejected_by_restaurant');
+        return response()->json(['status' => true, 'message' => 'تم رفض الطلب من قبل المطعم.', 'order' => $order]);
     }
 }
