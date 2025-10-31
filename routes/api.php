@@ -313,6 +313,40 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return response()->json(['status' => true, 'enabled' => $user->push_notifications_enabled]);
     });
+
+    // Simple toggle endpoints for push notifications using the user's token
+    // GET => Disable, POST => Enable
+    Route::get('/notifications/push', function (Request $r) {
+        $user = $r->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $user->push_notifications_enabled = false;
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'enabled' => false,
+            'message' => 'تم إيقاف استقبال إشعارات الدفع لهذا الحساب.',
+        ]);
+    });
+
+    Route::post('/notifications/push', function (Request $r) {
+        $user = $r->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $user->push_notifications_enabled = true;
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'enabled' => true,
+            'message' => 'تم تفعيل استقبال إشعارات الدفع لهذا الحساب.',
+        ]);
+    });
     // ===== End Device Tokens & Push Prefs =====
 
     // ===== Favorites (User-specific) =====
