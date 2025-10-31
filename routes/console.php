@@ -4,6 +4,8 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use App\Models\Order;
+use App\Models\User;
+use App\Models\ServiceRequest;
 use App\Support\Notifier;
 
 Artisan::command('inspire', function () {
@@ -56,3 +58,73 @@ Artisan::command('orders:auto-accept-pending {--notify}', function () {
 
     $this->info("Done. Updated {$updated} orders to accepted_by_admin.");
 })->purpose('Force-accept all pending food orders (use --notify to send notifications)');
+
+// Seed ready-to-display approved car rent service requests
+Artisan::command('rent:seed-approved-requests {--count=5} {--user_id=} {--governorate=} {--note=}', function () {
+    $count = (int) ($this->option('count') ?? 5);
+    if ($count < 1) {
+        $this->error('Invalid --count value. It must be >= 1.');
+        return 1;
+    }
+
+    $client = null;
+    $note = $this->option('note') ?? 'طلب تجريبي للتحقق من العرض لدى المكاتب';
+
+    // Resolve client user
+    if ($uid = $this->option('user_id')) {
+        $client = User::find($uid);
+        if (!$client) {
+            $this->error("User with ID {$uid} not found.");
+            return 1;
+        }
+    } else {
+        // Fallback test client
+        $client = User::firstOrCreate(
+            ['email' => 'seed.rent.client@example.com'],
+            [
+                'name' => 'Seed Rent Client',
+                'password' => bcrypt('password'),
+                'phone' => '01000000000',
+                'governorate' => 'القاهرة',
+                'city' => 'مدينة نصر',
+                'user_type' => 'normal',
+                'is_approved' => true,
+                'account_active' => true,
+                'is_email_verified' => true,
+            ]
+        );
+    }
+
+    $gov = $this->option('governorate') ?: ($client->governorate ?: 'القاهرة');
+
+    $this->info("Creating {$count} approved rent service requests for client #{$client->id} in governorate '{$gov}'...");
+
+    $created = [];
+    for ($i = 0; $i < $count; $i++) {
+        try {
+            $sr = ServiceRequest::create([
+                'user_id' => $client->id,
+                'governorate' => $gov,
+                'type' => 'rent',
+                'status' => 'approved', // visible to providers immediately
+                'approved_by_admin' => true,
+                'request_data' => [
+                    'car_type' => ['Sedan', 'SUV', 'Hatchback'][array_rand(['Sedan','SUV','Hatchback'])],
+                    'start_date' => now()->addDays(rand(0, 5))->toDateString(),
+                    'duration_days' => rand(1, 7),
+                    'pickup_location' => $client->city ?: 'القاهرة',
+                    'price' => rand(300, 900),
+                    'notes' => $note,
+                ],
+            ]);
+
+            $created[] = $sr->id;
+        } catch (\Throwable $e) {
+            Log::error('Failed creating seed service request: ' . $e->getMessage());
+        }
+    }
+
+    $this->info('Done. Created ' . count($created) . ' rent service requests: [' . implode(', ', $created) . ']');
+    $this->info('You can view them via GET /api/provider/service-requests as a car_rental_office.');
+    return 0;
+})->purpose('Create approved rent service requests visible to car_rental_office providers');
