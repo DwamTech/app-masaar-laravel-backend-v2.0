@@ -92,6 +92,25 @@ class CarServiceOrderController extends Controller
     }
 
     /**
+     * [مزود الخدمة] عرض الطلبات المتاحة لجميع مكاتب التأجير
+     * تُظهر جميع طلبات التأجير ذات الحالة pending_provider دون تقييد بالمحافظة.
+     */
+    public function availableForProviders(Request $request)
+    {
+        $orders = CarServiceOrder::where('order_type', 'rent')
+            ->where('status', 'pending_provider')
+            ->with(['client', 'provider', 'carRental', 'offers', 'statusHistories'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'orders' => $orders,
+            'count'  => $orders->count(),
+        ]);
+    }
+
+    /**
      * 3. عرض تفاصيل طلب معين.
      */
     public function show($id)

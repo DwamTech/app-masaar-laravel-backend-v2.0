@@ -176,6 +176,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/car-orders/{id}/offer', [CarServiceOrderController::class, 'offer']);
     Route::post('/car-orders/{order_id}/offer/{offer_id}/accept', [CarServiceOrderController::class, 'acceptOffer']);
     Route::post('/car-orders/{id}/accept-by-provider', [CarServiceOrderController::class, 'acceptByProvider']);
+    // Provider - Available car orders (for car rental offices to pick up)
+    Route::get('/provider/car-orders/available', [CarServiceOrderController::class, 'availableForProviders']);
     Route::patch('/car-rental-office-detail/{id}/availability', [CarRentalOfficesDetailController::class, 'updateAvailability']);
 
     // Delivery Service Routes
