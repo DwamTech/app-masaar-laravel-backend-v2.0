@@ -46,7 +46,7 @@ class OrderController extends Controller
         $order = Order::create([
             'user_id' => $user->id,
             'restaurant_id' => $validatedData['restaurant_id'],
-            'status' => 'pending', // الطلب قيد المراجعة من المطعم
+            'status' => 'accepted_by_admin', // يتم قبول الطلب تلقائياً وتوجيهه للمطعم
             'order_number' => $orderNumber,
             'subtotal' => $subtotal,
             'delivery_fee' => $deliveryFee,
@@ -57,12 +57,12 @@ class OrderController extends Controller
         
         $order->items()->createMany($orderItemsData);
 
-        // إرسال إشعار إنشاء الطلب وقيده للمراجعة من المطعم
-        $this->sendOrderNotifications($order, 'pending');
+        // إرسال إشعار قبول الطلب تلقائياً وتوجيهه للمطعم
+        $this->sendOrderNotifications($order, 'accepted_by_admin');
 
         return response()->json([
             'status' => true,
-            'message' => 'تم إرسال طلبك وجاري مراجعته من قبل المطعم.',
+            'message' => 'تم إرسال طلبك إلى المطعم وبانتظار التنفيذ.',
             'order' => $order->load('items')
         ], 201);
     }
