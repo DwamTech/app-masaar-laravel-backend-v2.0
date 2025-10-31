@@ -935,6 +935,7 @@
     <div class="d-flex gap-2" id="controlTabs">
         <button class="modern-tab-button active" id="tab-restaurants" onclick="switchTab('restaurants')">المطاعم</button>
         <button class="modern-tab-button" id="tab-properties" onclick="switchTab('properties')">العقارات</button>
+        <button class="modern-tab-button" id="tab-cars" onclick="switchTab('cars')">السيارات</button>
     </div>
 </div>
 <div id="controlTabContent" class="mt-4"></div>
@@ -977,6 +978,7 @@ const baseUrl = "{{ url('') }}"; // أكثر أمانًا من ثابت domain
 let currentTab = 'restaurants';
 let restaurants = [];
 let properties = [];
+let cars = [];
 
 let pollTimer = null;
 const POLL_MS = 8000;
@@ -985,6 +987,7 @@ const POLL_MS = 8000;
 let inflight = {
   restaurants: null,
   properties: null,
+  cars: null,
 };
 
 // تأكيد وجود توكن
@@ -1015,8 +1018,10 @@ function switchTab(tab) {
 function renderCurrentTab(auto = false) {
   if (currentTab === 'restaurants') {
     fetchRestaurants(auto);
-  } else {
+  } else if (currentTab === 'properties') {
     fetchProperties(auto);
+  } else if (currentTab === 'cars') {
+    fetchCars(auto);
   }
 }
 
@@ -1335,13 +1340,157 @@ function updatePropertyCard(col, p, isBest) {
   }
 }
 
+/** ====== طلبات الشبكة (سيارات) ====== **/
+async function fetchCars(auto = false) {
+  abortIfInflight('cars');
+
+  const controller = new AbortController();
+  inflight.cars = controller;
+
+  try {
+    const token = getTokenOrThrow();
+    if (!auto && !document.getElementById('cars-container')) {
+      document.getElementById('controlTabContent').innerHTML =
+        `<div class="text-center py-5"><div class="spinner-border"></div></div>`;
+    }
+
+    const res = await fetch(`${baseUrl}/api/admin/cars`, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
+      signal: controller.signal
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`Cars fetch failed: ${res.status} ${t}`);
+    }
+
+    const data = await res.json();
+
+    if (currentTab !== 'cars') return;
+
+    cars = Array.isArray(data) ? data : (data?.cars ?? []);
+    renderCars(!document.getElementById('cars-container'));
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    if (!auto) {
+      console.error('[CONTROL] Cars error:', err);
+      document.getElementById('controlTabContent').innerHTML =
+        `<div class="alert alert-danger">تعذر تحميل السيارات! ${escapeHTML(err.message)}</div>`;
+    }
+  } finally {
+    inflight.cars = null;
+  }
+}
+
+function renderCars(isFirstRender = false) {
+  const container = document.getElementById('controlTabContent');
+
+  if (isFirstRender) {
+    if (!cars.length) {
+      container.innerHTML = `<div class="alert alert-warning">لا توجد سيارات حالياً.</div>`;
+      return;
+    }
+    container.innerHTML = `
+      <div class="modern-cards-container">
+        <div class="row g-4" id="cars-container"></div>
+      </div>`;
+  }
+
+  const cards = document.getElementById('cars-container');
+  if (!cards) return;
+
+  const existing = new Set([...cards.children].map(c => c.id));
+  const incoming = new Set(cars.map(c => `car-card-${c.id}`));
+
+  cars.forEach(c => {
+    const cardId = `car-card-${c.id}`;
+    const isApproved = Number(c?.is_reviewed) === 1 || c?.is_reviewed === true;
+    const img = c?.car_image_front || c?.car_image_back || '';
+
+    let col = document.getElementById(cardId);
+    if (!col) {
+      col = document.createElement('div');
+      col.className = 'col-md-6 col-lg-4';
+      col.id = cardId;
+      col.innerHTML = createCarCardHTML(c, isApproved, img);
+      cards.appendChild(col);
+    } else {
+      updateCarCard(col, c, isApproved, img);
+    }
+  });
+
+  existing.forEach(id => {
+    if (!incoming.has(id)) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+  });
+}
+
+function createCarCardHTML(c, isApproved, img) {
+  const title = c?.car_model || c?.car_type || 'سيارة';
+  const subtitle = c?.car_plate_number ? `لوحة: ${c.car_plate_number}` : (c?.car_color ? `اللون: ${c.car_color}` : '');
+
+  return `
+    <div class="modern-card new-card-animation js-open-details" data-kind="car" data-id="${c.id}" tabindex="0" role="button">
+      <div class="modern-card-header">
+        ${img ? `<img src="${escapeAttr(img)}" class="modern-property-image" onclick="openImgFull('${escapeAttr(img)}')">` : ''}
+        <div class="modern-info-text">
+          <div class="modern-title">${escapeHTML(String(title))}</div>
+          <div class="modern-subtitle">${escapeHTML(String(subtitle))}</div>
+        </div>
+      </div>
+      <div class="modern-card-body">
+        <div class="modern-details">
+          <div class="modern-detail-item">
+            <div class="modern-detail-icon">💰</div>
+            <div class="modern-detail-label">السعر:</div>
+            <div class="modern-detail-value">${escapeHTML(String(c?.price ?? '-'))} جنيه</div>
+          </div>
+          <div class="modern-detail-item">
+            <div class="modern-detail-icon">🎨</div>
+            <div class="modern-detail-label">اللون:</div>
+            <div class="modern-detail-value">${escapeHTML(String(c?.car_color ?? '-'))}</div>
+          </div>
+        </div>
+        <div class="modern-actions">
+          <button type="button"
+            class="modern-favorite-btn ${isApproved ? 'active' : ''}"
+            data-id="${c.id}" data-kind="car">
+            <i class="bi ${isApproved ? 'bi-check2-circle' : 'bi-check2'}"></i> ${isApproved ? 'معتمدة' : 'اعتماد'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function updateCarCard(col, c, isApproved, img) {
+  const title = col.querySelector('.modern-title');
+  const sub = col.querySelector('.modern-subtitle');
+  if (title) title.textContent = c?.car_model || c?.car_type || 'سيارة';
+  if (sub) sub.textContent = c?.car_plate_number ? `لوحة: ${c.car_plate_number}` : (c?.car_color ? `اللون: ${c.car_color}` : '');
+
+  const imgEl = col.querySelector('.modern-property-image');
+  if (imgEl) {
+    if (img) { imgEl.src = img; } else { imgEl.remove(); }
+  }
+
+  const btn = col.querySelector('.modern-favorite-btn');
+  if (btn) {
+    btn.classList.toggle('active', isApproved);
+    btn.innerHTML = `<i class="bi ${isApproved ? 'bi-check2-circle' : 'bi-check2'}"></i> ${isApproved ? 'معتمدة' : 'اعتماد'}`;
+    btn.dataset.id = c.id;
+    btn.dataset.kind = 'car';
+  }
+}
+
 /** ====== تفعيل/تعطيل “المفضل” (تفويض أحداث) ====== **/
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.modern-favorite-btn');
   if (!btn) return;
 
   const id = btn.dataset.id;
-  const kind = btn.dataset.kind; // 'restaurant' | 'property'
+  const kind = btn.dataset.kind; // 'restaurant' | 'property' | 'car'
   if (!id || !kind) return;
 
   try {
@@ -1349,9 +1498,13 @@ document.addEventListener('click', async (e) => {
     const willSet = btn.classList.contains('active') ? 0 : 1;
 
     const isRestaurant = kind === 'restaurant';
+    const isProperty = kind === 'property';
+    const isCar = kind === 'car';
     const url = isRestaurant
       ? `${baseUrl}/api/users/${id}`
-      : `${baseUrl}/api/admin/properties/${id}/feature`;
+      : (isProperty
+          ? `${baseUrl}/api/admin/properties/${id}/feature`
+          : `${baseUrl}/api/admin/cars/${id}/review`);
 
     const res = await fetch(url, {
       method: isRestaurant ? 'PUT' : 'PATCH',
@@ -1360,7 +1513,10 @@ document.addEventListener('click', async (e) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify(isRestaurant ? { the_best: willSet } : { is_featured: willSet === 1 })
+      body: JSON.stringify(
+        isRestaurant ? { the_best: willSet }
+        : (isProperty ? { is_featured: willSet === 1 } : { is_reviewed: willSet === 1 })
+      )
     });
 
     if (!res.ok) {
@@ -1374,10 +1530,14 @@ document.addEventListener('click', async (e) => {
       if (idx > -1) restaurants[idx].the_best = willSet;
       updateRestaurantCard(document.getElementById(`restaurant-card-${id}`), restaurants[idx], willSet,
         restaurants[idx]?.restaurant_detail?.logo_image || restaurants[idx]?.restaurant_detail?.profile_image || '');
-    } else {
+    } else if (kind === 'property') {
       const idx = properties.findIndex(p => String(p.id) === String(id));
       if (idx > -1) properties[idx].is_featured = (willSet === 1);
       updatePropertyCard(document.getElementById(`property-card-${id}`), properties[idx], (willSet === 1));
+    } else if (kind === 'car') {
+      const idx = cars.findIndex(c => String(c.id) === String(id));
+      if (idx > -1) cars[idx].is_reviewed = (willSet === 1);
+      updateCarCard(document.getElementById(`car-card-${id}`), cars[idx], (willSet === 1));
     }
   } catch (err) {
     console.error('[CONTROL] Toggle favorite error:', err);
@@ -1446,7 +1606,21 @@ const AR_LABELS = {
   office_detail: 'تفاصيل المكتب',
   driver_detail: 'تفاصيل السائق',
   individual_detail: 'تفاصيل السمسار',
-  restaurant_detail: 'تفاصيل المطعم'
+  restaurant_detail: 'تفاصيل المطعم',
+  // سيارات
+  car_type: 'نوع السيارة',
+  car_model: 'الموديل',
+  car_color: 'اللون',
+  car_plate_number: 'رقم اللوحة',
+  is_reviewed: 'معتمدة',
+  license_front_image: 'رخصة أمامية',
+  license_back_image: 'رخصة خلفية',
+  car_license_front: 'رخصة السيارة (أمام)',
+  car_license_back: 'رخصة السيارة (خلف)',
+  car_image_front: 'صورة السيارة (أمام)',
+  car_image_back: 'صورة السيارة (خلف)',
+  carRental: 'مكتب التأجير',
+  user: 'المستخدم'
 };
 
 function arLabel(key){
@@ -1461,7 +1635,9 @@ function iconFor(key){
     name:'bi-person-fill', email:'bi-envelope-fill', phone:'bi-telephone-fill', governorate:'bi-geo-alt-fill',
     restaurant_name:'bi-shop', logo:'bi-image', image:'bi-image', images:'bi-images',
     branch:'bi-diagram-3', working:'bi-clock-history', hours:'bi-clock-history',
-    price:'bi-cash', area:'bi-aspect-ratio', address:'bi-geo-alt', type:'bi-tag'
+    price:'bi-cash', area:'bi-aspect-ratio', address:'bi-geo-alt', type:'bi-tag',
+    car_type:'bi-truck', car_model:'bi-speedometer2', car_color:'bi-palette',
+    car_plate:'bi-credit-card-2-front', license:'bi-card-text', reviewed:'bi-check2-circle'
   };
   key = String(key||'').toLowerCase();
   for (const k in map){ if (key.includes(k)) return map[k]; }
@@ -1554,7 +1730,7 @@ function renderAny(value, key){
       <i class="bi ${value?'bi-check-circle-fill':'bi-x-circle-fill'}"></i>${value?'نعم':'لا'}</span>`;
   }
   // أرقام منطقية 0/1 لبعض الحقول
-  if (['delivery_available','vat_included','tax_enabled','is_available_for_rent','is_available_for_delivery','the_best','deposit_required']
+  if (['delivery_available','vat_included','tax_enabled','is_available_for_rent','is_available_for_delivery','the_best','deposit_required','is_reviewed']
       .some(k=>new RegExp(k,'i').test(key))){
     const ok = Number(value) === 1;
     return `<span class="details-badge ${ok?'badge-success':'badge-danger'}">
@@ -1630,12 +1806,18 @@ function openEntityDetails(kind, id) {
     titleEl.textContent = 'تفاصيل المطعم';
     iconEl.className = 'bi bi-person-badge-fill title-icon';
     bodyEl.innerHTML = renderAccountStyleDetailsForRestaurant(r);
-  } else {
+  } else if (kind === 'property') {
     const p = properties.find(x => String(x.id) === String(id));
     if (!p) return alert('لم يتم العثور على العقار.');
     titleEl.textContent = 'تفاصيل العقار';
     iconEl.className = 'bi bi-building title-icon';
     bodyEl.innerHTML = renderAccountStyleDetailsForProperty(p);
+  } else if (kind === 'car') {
+    const c = cars.find(x => String(x.id) === String(id));
+    if (!c) return alert('لم يتم العثور على السيارة.');
+    titleEl.textContent = 'تفاصيل السيارة';
+    iconEl.className = 'bi bi-truck title-icon';
+    bodyEl.innerHTML = renderAccountStyleDetailsForCar(c);
   }
 
   new bootstrap.Modal(modalEl).show();
@@ -1740,6 +1922,58 @@ function renderAccountStyleDetailsForProperty(p) {
   return html;
 }
 
+function renderAccountStyleDetailsForCar(c) {
+  let html = '<div class="details-container">';
+
+  // معلومات أساسية
+  html += '<div class="details-section"><h5 class="section-title"><i class="bi bi-truck"></i> معلومات السيارة</h5>';
+  const basic = ['car_type','car_model','car_color','car_plate_number','price','is_reviewed'];
+  basic.forEach(k=>{
+    if (c[k] != null) {
+      html += `<div class="details-item">
+        <div class="details-label"><i class="bi ${iconFor(k)}"></i><span>${arLabel(k)}</span></div>
+        <div class="details-content">${renderAny(c[k], k)}</div>
+      </div>`;
+    }
+  });
+  html += '</div>';
+
+  // صور ووثائق
+  const imageKeys = ['license_front_image','license_back_image','car_license_front','car_license_back','car_image_front','car_image_back'];
+  const imgs = imageKeys.map(k => c[k]).filter(v => !!v);
+  if (imgs.length) {
+    html += `<div class="details-section specialized-section">
+      <h5 class="section-title"><i class="bi bi-images"></i> الصور والمستندات</h5>
+      ${renderArray(imgs, 'images')}
+    </div>`;
+  }
+
+  // مكتب التأجير
+  if (c.carRental) {
+    html += `<div class="details-section"><h5 class="section-title"><i class="bi bi-building"></i> ${arLabel('carRental')}</h5>`;
+    html += `<div class="details-item" style="grid-column: 1 / -1;">
+      <div class="details-content">${renderAny(c.carRental, 'carRental')}</div>
+    </div>`;
+    html += `</div>`;
+  }
+
+  // معلومات النظام
+  const sys = ['id','created_at','updated_at'];
+  html += '<div class="details-section"><h5 class="section-title"><i class="bi bi-gear"></i> معلومات النظام</h5>';
+  sys.forEach(k=>{
+    if (k in c){
+      html += `<div class="details-item">
+        <div class="details-label"><i class="bi ${iconFor(k)}"></i><span>${arLabel(k)}</span></div>
+        <div class="details-content">${renderAny(c[k], k)}</div>
+      </div>`;
+    }
+  });
+  html += '</div>';
+
+  html += '</div>';
+  return html;
+}
+
 /** ====== تشغيل مبدئي ====== **/
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -1757,6 +1991,7 @@ window.addEventListener('beforeunload', () => {
   stopPolling();
   abortIfInflight('restaurants');
   abortIfInflight('properties');
+  abortIfInflight('cars');
 });
 </script>
 

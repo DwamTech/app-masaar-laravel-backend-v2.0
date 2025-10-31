@@ -391,6 +391,9 @@ Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function
     Route::get('/properties', [PropertyController::class, 'adminIndex']);
     Route::delete('/properties/{id}', [PropertyController::class, 'adminDestroy']);
     Route::patch('/properties/{id}/feature', [PropertyController::class, 'toggleFeatured']);
+
+    // Cars - Admin Routes
+    Route::get('/cars', [CarController::class, 'adminIndex']);
     
     // Security Permits - Admin Routes
     Route::prefix('security-permits')->group(function () {
@@ -422,6 +425,9 @@ Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function
 
     // Car Service Orders - Admin listing
     Route::get('/car-orders', [CarServiceOrderController::class, 'adminIndex']);
+
+    // Cars - Admin review/approve
+    Route::patch('/cars/{id}/review', [CarController::class, 'review']);
 });
 
 // ======= Menu Sections and Items (Public) =======
@@ -449,6 +455,10 @@ Route::get('/properties', [PropertyController::class, 'index']);
 Route::get('/properties/search', [PropertyController::class, 'search']);
 Route::get('/properties/featured', [PropertyController::class, 'featured']);
 Route::get('/properties/{id}', [PropertyController::class, 'show']);
+
+// ======= Public Cars (Public) =======
+Route::get('/public-cars', [CarController::class, 'publicIndex']);
+Route::get('/public-cars/{id}', [CarController::class, 'publicShow']);
 
 // !! مسارات البحث في الوجبات !!
 Route::get('/menu-items/search', [MenuItemController::class, 'search']);
