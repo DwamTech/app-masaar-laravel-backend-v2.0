@@ -10,6 +10,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\RealEstateAnalyticsController;
+use App\Http\Controllers\RestaurantAnalyticsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SecurityPermitController;
 use App\Http\Controllers\Admin\AdminSecurityPermitController;
@@ -115,6 +116,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Real Estate Analytics (Service Provider)
     Route::get('/real-estate/analytics', [RealEstateAnalyticsController::class, 'overview']);
+
+    // Restaurant Analytics (Restaurant Provider)
+    Route::get('/restaurant/analytics', [RestaurantAnalyticsController::class, 'overview']);
 
     // Real Estate Office Details - show & update (multipart)
     Route::get('/real-estate-office-details/{id}', [RealEstateOfficesDetailController::class, 'show']);
