@@ -58,7 +58,7 @@ class RestaurantProfileController extends Controller
         ]);
 
         // استخدام Transaction لضمان حفظ كل التغييرات معًا أو عدم حفظ أي منها
-        DB::transaction(function () use ($user, $validatedData) {
+        DB::transaction(function () use ($user, $request) {
             // تحديث البيانات في جدول users
             $user->update($request->only(['name', 'phone', 'governorate']));
 
