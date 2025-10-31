@@ -23,8 +23,9 @@ class ServiceRequestController extends Controller
             $approved_by_admin = true;
             $status = 'approved';
         } else {
-            $approved_by_admin = false;
-            $status = 'pending';
+            // مؤقتاً: اعتماد طلبات الإيجار تلقائياً بدون انتظار موافقة الأدمن
+            $approved_by_admin = true;
+            $status = 'approved';
         }
 
         $serviceRequest = ServiceRequest::create([

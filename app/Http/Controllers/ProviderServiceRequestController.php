@@ -30,7 +30,6 @@ class ProviderServiceRequestController extends Controller
         $requests = ServiceRequest::with('user:id,name,phone') // جلب بيانات العميل
             ->where('status', 'approved')
             ->where('type', $requestTypeToFetch)
-            ->where('governorate', $provider->governorate) // **فلتر إضافي مهم: عرض طلبات نفس المحافظة فقط**
             ->latest()
             ->get();
 
