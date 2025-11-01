@@ -9,6 +9,9 @@ use App\Models\ServiceRequest;
 use App\Models\CarServiceOrder;
 use App\Models\OrderStatusHistory;
 use App\Support\Notifier;
+use App\Models\DeliveryRequest;
+use App\Models\DeliveryDestination;
+use App\Models\DeliveryStatusHistory;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -232,3 +235,112 @@ Artisan::command('car-orders:seed-pending {--count=5} {--user_id=} {--note=} {--
     $this->info('Providers can view them via GET /api/provider/car-orders/available or /api/car-orders?status=pending_provider.');
     return 0;
 })->purpose('Create pending_provider car rent orders visible to car_rental_office providers');
+
+// Seed pending delivery requests (DeliveryRequest) for quick driver-visibility testing
+Artisan::command('delivery:seed-pending {--count=5} {--client_id=} {--client_email=} {--governorate=} {--note=} {--category=economy} {--payment=cash} {--price=} {--hours=2}', function () {
+    $count = (int) ($this->option('count') ?? 5);
+    if ($count < 1) {
+        $this->error('Invalid --count value. It must be >= 1.');
+        return 1;
+    }
+
+    // Resolve client
+    $client = null;
+    if ($cid = $this->option('client_id')) {
+        $client = User::find($cid);
+        if (!$client) {
+            $this->error("Client with ID {$cid} not found.");
+            return 1;
+        }
+    } elseif ($cem = $this->option('client_email')) {
+        $client = User::where('email', $cem)->first();
+        if (!$client) {
+            $this->error("Client with email {$cem} not found.");
+            return 1;
+        }
+    } else {
+        // Fallback seed client
+        $client = User::firstOrCreate(
+            ['email' => 'seed.delivery.client@example.com'],
+            [
+                'name' => 'Seed Delivery Client',
+                'password' => bcrypt('password'),
+                'phone' => '01000000002',
+                'governorate' => 'القاهرة',
+                'city' => 'مدينة نصر',
+                'user_type' => 'normal',
+                'is_approved' => true,
+                'account_active' => true,
+                'is_email_verified' => true,
+            ]
+        );
+    }
+
+    $gov = $this->option('governorate') ?: ($client->governorate ?: 'القاهرة');
+    $note = $this->option('note') ?? 'طلب توصيل تجريبي';
+    $category = $this->option('category') ?? 'economy';
+    $payment = $this->option('payment') ?? 'cash';
+    $price = $this->option('price');
+    $hours = (int) ($this->option('hours') ?? 2);
+    if ($hours < 1) { $hours = 1; }
+
+    $this->info("Creating {$count} pending_offers delivery requests for client #{$client->id} in governorate '{$gov}'...");
+
+    $created = [];
+    for ($i = 0; $i < $count; $i++) {
+        try {
+            // Create delivery request
+            $dr = DeliveryRequest::create([
+                'client_id' => $client->id,
+                'trip_type' => 'one_way',
+                'delivery_time' => now()->addHours($hours),
+                'car_category' => $category,
+                'payment_method' => $payment,
+                'price' => $price ?? rand(40, 120),
+                'notes' => $note,
+                'governorate' => $gov,
+                'status' => DeliveryRequest::STATUS_PENDING_OFFERS,
+            ]);
+
+            // Add two destinations (pickup + dropoff)
+            DeliveryDestination::create([
+                'delivery_request_id' => $dr->id,
+                'order' => 1,
+                'location_name' => 'نقطة الانطلاق - ' . $gov,
+                'latitude' => null,
+                'longitude' => null,
+                'address' => $client->city ?: $gov,
+                'is_pickup_point' => true,
+                'is_dropoff_point' => false,
+            ]);
+
+            DeliveryDestination::create([
+                'delivery_request_id' => $dr->id,
+                'order' => 2,
+                'location_name' => 'نقطة الوصول - ' . $gov,
+                'latitude' => null,
+                'longitude' => null,
+                'address' => $gov,
+                'is_pickup_point' => false,
+                'is_dropoff_point' => true,
+            ]);
+
+            // Status history
+            DeliveryStatusHistory::create([
+                'delivery_request_id' => $dr->id,
+                'status' => DeliveryRequest::STATUS_PENDING_OFFERS,
+                'changed_by' => $client->id,
+                'note' => 'تم إنشاء طلب توصيل تجريبي عبر الأمر'
+            ]);
+
+            $created[] = $dr->id;
+        } catch (\Throwable $e) {
+            $this->error('Failed creating seed delivery request: ' . $e->getMessage());
+            Log::error('Failed creating seed delivery request: ' . $e->getMessage());
+        }
+    }
+
+    $this->info('Done. Created ' . count($created) . ' delivery requests: [' . implode(', ', $created) . ']');
+    $this->info('Drivers from the same governorate can view them via GET /api/delivery/available-requests.');
+    return 0;
+})->purpose('Create pending_offers delivery requests visible to drivers in the same governorate');
