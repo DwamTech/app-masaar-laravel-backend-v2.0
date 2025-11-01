@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Support\Notifier;
 use Illuminate\Support\Facades\Log;
+use App\Models\Car;
+use App\Models\CarRentalOfficesDetail;
+use Carbon\Carbon;
 
 class CarServiceOrderController extends Controller
 {
@@ -405,6 +408,199 @@ class CarServiceOrderController extends Controller
         }
         
         Log::info("--- [Car Order Notification] Process finished for Order #{$order->id} ---");
+    }
+
+    /**
+     * إحصائيات مزود الخدمة: السيارات، الطلبات، الإيرادات، والأزمنة.
+     * Endpoint: GET /api/provider/stats
+     * Query: ?from=YYYY-MM-DD&to=YYYY-MM-DD&period=day|week|month
+     */
+    public function providerStats(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $carRental = $user->car_rental ?? $user->carRental ?? null;
+            $carRentalId = $carRental ? $carRental->id : null;
+
+            $from = $request->query('from');
+            $to = $request->query('to');
+            $period = $request->query('period');
+
+            // Resolve date range
+            $fromDate = $from ? Carbon::parse($from)->startOfDay() : null;
+            $toDate = $to ? Carbon::parse($to)->endOfDay() : null;
+            if ($period && (!$fromDate || !$toDate)) {
+                $now = Carbon::now();
+                if ($period === 'day') {
+                    $fromDate = $fromDate ?: $now->copy()->startOfDay();
+                    $toDate = $toDate ?: $now->copy()->endOfDay();
+                } elseif ($period === 'week') {
+                    $fromDate = $fromDate ?: $now->copy()->startOfWeek();
+                    $toDate = $toDate ?: $now->copy()->endOfWeek();
+                } elseif ($period === 'month') {
+                    $fromDate = $fromDate ?: $now->copy()->startOfMonth();
+                    $toDate = $toDate ?: $now->copy()->endOfMonth();
+                }
+            }
+
+            // Provider ownership filter (by provider_id OR car_rental_id)
+            $providerFilter = function ($q) use ($user, $carRentalId) {
+                $q->where('provider_id', $user->id);
+                if ($carRentalId) { $q->orWhere('car_rental_id', $carRentalId); }
+            };
+
+            $baseOrdersQuery = CarServiceOrder::query()
+                ->where('order_type', 'rent')
+                ->where($providerFilter);
+
+            if ($fromDate && $toDate) {
+                $baseOrdersQuery->whereBetween('created_at', [$fromDate, $toDate]);
+            } elseif ($fromDate) {
+                $baseOrdersQuery->where('created_at', '>=', $fromDate);
+            } elseif ($toDate) {
+                $baseOrdersQuery->where('created_at', '<=', $toDate);
+            }
+
+            $totalOrders = (clone $baseOrdersQuery)->count();
+
+            // Counts by status
+            $statusCountsRaw = (clone $baseOrdersQuery)
+                ->select('status', DB::raw('COUNT(*) as cnt'))
+                ->groupBy('status')
+                ->pluck('cnt', 'status')
+                ->toArray();
+
+            $byStatus = [];
+            foreach (['pending_provider', 'negotiation', 'accepted', 'started', 'finished', 'rejected', 'cancelled'] as $st) {
+                $byStatus[$st] = intval($statusCountsRaw[$st] ?? 0);
+            }
+
+            $currentInProgress = $byStatus['started'] ?? 0;
+            $completedCount = $byStatus['finished'] ?? 0;
+
+            // Global available (not restricted to provider) in selected range
+            $availableQuery = CarServiceOrder::query()
+                ->where('order_type', 'rent')
+                ->where('status', 'pending_provider');
+            if ($fromDate && $toDate) {
+                $availableQuery->whereBetween('created_at', [$fromDate, $toDate]);
+            } elseif ($fromDate) {
+                $availableQuery->where('created_at', '>=', $fromDate);
+            } elseif ($toDate) {
+                $availableQuery->where('created_at', '<=', $toDate);
+            }
+            $newAvailableGlobal = $availableQuery->count();
+
+            // Cars summary for this office
+            $carsTotal = 0; $carsReviewed = 0; $carsUnreviewed = 0;
+            $officeAvailableForRent = null; $officeAvailableForDelivery = null;
+            if ($carRentalId) {
+                $carsTotal = Car::where('car_rental_id', $carRentalId)->count();
+                $carsReviewed = Car::where('car_rental_id', $carRentalId)->where('is_reviewed', true)->count();
+                $carsUnreviewed = max(0, $carsTotal - $carsReviewed);
+                $officeDetails = CarRentalOfficesDetail::where('car_rental_id', $carRentalId)->first();
+                if ($officeDetails) {
+                    $officeAvailableForRent = $officeDetails->is_available_for_rent;
+                    $officeAvailableForDelivery = $officeDetails->is_available_for_delivery;
+                }
+            }
+
+            // Revenue based on finished orders in the range
+            $providerOrderIds = (clone $baseOrdersQuery)->pluck('id');
+            $finishedHistQuery = OrderStatusHistory::whereIn('order_id', $providerOrderIds)
+                ->where('status', 'finished');
+            if ($fromDate && $toDate) {
+                $finishedHistQuery->whereBetween('created_at', [$fromDate, $toDate]);
+            } elseif ($fromDate) {
+                $finishedHistQuery->where('created_at', '>=', $fromDate);
+            } elseif ($toDate) {
+                $finishedHistQuery->where('created_at', '<=', $toDate);
+            }
+            $finishedOrderIds = $finishedHistQuery->pluck('order_id')->unique();
+
+            $revenueTotal = CarServiceOrder::whereIn('id', $finishedOrderIds)->sum('agreed_price');
+            $finishedCount = $finishedOrderIds->count();
+            $revenueAvg = $finishedCount > 0 ? round($revenueTotal / $finishedCount, 2) : 0.0;
+
+            // Average acceptance duration (created_at -> accepted_at)
+            $acceptQuery = (clone $baseOrdersQuery)->whereNotNull('accepted_at');
+            if ($fromDate && $toDate) {
+                $acceptQuery->whereBetween('accepted_at', [$fromDate, $toDate]);
+            } elseif ($fromDate) {
+                $acceptQuery->where('accepted_at', '>=', $fromDate);
+            } elseif ($toDate) {
+                $acceptQuery->where('accepted_at', '<=', $toDate);
+            }
+            $avgAcceptMinutes = $acceptQuery
+                ->select(DB::raw('AVG(TIMESTAMPDIFF(MINUTE, created_at, accepted_at)) as avg_accept'))
+                ->value('avg_accept');
+            $avgAcceptMinutes = $avgAcceptMinutes ? intval(round($avgAcceptMinutes)) : 0;
+
+            // Average execution duration (started -> finished) per order
+            $avgExecutionMinutes = 0;
+            if ($providerOrderIds->count() > 0) {
+                $histories = OrderStatusHistory::whereIn('order_id', $providerOrderIds)
+                    ->whereIn('status', ['started', 'finished'])
+                    ->orderBy('order_id')
+                    ->orderBy('created_at')
+                    ->get()
+                    ->groupBy('order_id');
+
+                $durations = [];
+                foreach ($histories as $oid => $group) {
+                    $startedAt = null; $finishedAt = null;
+                    foreach ($group as $h) {
+                        if ($h->status === 'started' && !$startedAt) { $startedAt = $h->created_at; }
+                        if ($h->status === 'finished' && !$finishedAt) { $finishedAt = $h->created_at; }
+                    }
+                    if ($startedAt && $finishedAt) {
+                        if ($fromDate && $finishedAt->lt($fromDate)) { continue; }
+                        if ($toDate && $finishedAt->gt($toDate)) { continue; }
+                        $durations[] = $finishedAt->diffInMinutes($startedAt);
+                    }
+                }
+                $avgExecutionMinutes = count($durations) ? intval(round(array_sum($durations) / count($durations))) : 0;
+            }
+
+            return response()->json([
+                'status' => true,
+                'summary' => [
+                    'cars_total' => $carsTotal,
+                    'cars_reviewed' => $carsReviewed,
+                    'cars_unreviewed' => $carsUnreviewed,
+                    'office_available_for_rent' => $officeAvailableForRent,
+                    'office_available_for_delivery' => $officeAvailableForDelivery,
+                ],
+                'orders' => [
+                    'total' => $totalOrders,
+                    'by_status' => $byStatus,
+                    'new_available_global' => $newAvailableGlobal,
+                    'current_in_progress' => $currentInProgress,
+                    'completed_count' => $completedCount,
+                ],
+                'revenue' => [
+                    'total' => (float) $revenueTotal,
+                    'average_per_order' => (float) $revenueAvg,
+                ],
+                'durations' => [
+                    'avg_accept_minutes' => $avgAcceptMinutes,
+                    'avg_execution_minutes' => $avgExecutionMinutes,
+                ],
+                'filters' => [
+                    'range' => [
+                        'from' => $fromDate ? $fromDate->toDateString() : null,
+                        'to' => $toDate ? $toDate->toDateString() : null,
+                    ],
+                    'period' => $period,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('providerStats error', ['message' => $e->getMessage()]);
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to load provider statistics',
+            ], 500);
+        }
     }
 
     /**

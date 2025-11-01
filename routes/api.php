@@ -184,6 +184,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Provider - In-progress and completed car orders tied to token
     Route::get('/provider/car-orders/in-progress', [CarServiceOrderController::class, 'inProgressForProvider']);
     Route::get('/provider/car-orders/complete', [CarServiceOrderController::class, 'completedForProvider']);
+    // Provider - Stats overview
+    Route::get('/provider/stats', [CarServiceOrderController::class, 'providerStats']);
     Route::patch('/car-rental-office-detail/{id}/availability', [CarRentalOfficesDetailController::class, 'updateAvailability']);
 
     // Delivery Service Routes
