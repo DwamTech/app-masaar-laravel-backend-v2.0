@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'is_admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'otp.rate.limit' => \App\Http\Middleware\OtpRateLimit::class,
             'conversation.participant' => \App\Http\Middleware\ConversationParticipant::class,
+            'driver.eligible' => \App\Http\Middleware\EnsureDriverEligible::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
