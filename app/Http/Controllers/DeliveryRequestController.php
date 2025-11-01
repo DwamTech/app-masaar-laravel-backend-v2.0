@@ -510,6 +510,7 @@ class DeliveryRequestController extends Controller
                         $availableDrivers = User::where('user_type', 'driver')
                             ->where('governorate', $clientGovernorate)
                             ->where('push_notifications_enabled', 1)
+                            ->where('is_available', 1)
                             ->whereHas('driverCars', function($q){
                                 $q->where('owner_type', 'driver')->where('is_reviewed', 1);
                             })
@@ -519,6 +520,7 @@ class DeliveryRequestController extends Controller
                         Log::warning("Client governorate not set, sending to all eligible drivers");
                         $availableDrivers = User::where('user_type', 'driver')
                             ->where('push_notifications_enabled', 1)
+                            ->where('is_available', 1)
                             ->whereHas('driverCars', function($q){
                                 $q->where('owner_type', 'driver')->where('is_reviewed', 1);
                             })

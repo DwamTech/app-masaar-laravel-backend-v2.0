@@ -271,6 +271,7 @@ class UserController extends Controller
 
         $query = User::where('user_type', 'driver')
             ->where('is_approved', 1)
+            ->where('is_available', 1)
             ->with([
                 'carRental.driverDetail',
                 'driverCars' => function($query) {
