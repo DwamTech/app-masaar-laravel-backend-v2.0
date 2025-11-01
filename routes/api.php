@@ -187,6 +187,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Provider - Stats overview
     Route::get('/provider/stats', [CarServiceOrderController::class, 'providerStats']);
     Route::patch('/car-rental-office-detail/{id}/availability', [CarRentalOfficesDetailController::class, 'updateAvailability']);
+    // Car Rental Office Details - documents management
+    Route::get('/car-rental-office-detail/{id}', [CarRentalOfficesDetailController::class, 'show']);
+    Route::patch('/car-rental-office-detail/{id}/documents', [CarRentalOfficesDetailController::class, 'updateDocuments']);
+    Route::post('/car-rental-office-detail/{id}/documents/upload', [CarRentalOfficesDetailController::class, 'uploadDocument']);
+    Route::delete('/car-rental-office-detail/{id}/documents/{type}', [CarRentalOfficesDetailController::class, 'deleteDocument']);
 
     // Delivery Service Routes
     Route::prefix('delivery')->group(function () {
