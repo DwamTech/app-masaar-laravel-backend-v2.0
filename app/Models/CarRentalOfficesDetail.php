@@ -12,6 +12,13 @@ class CarRentalOfficesDetail extends Model
         'logo_image',
         'commercial_register_front_image',
         'commercial_register_back_image',
+        'owner_id_front_image',
+        'owner_id_back_image',
+        'license_front_image',
+        'license_back_image',
+        'vat_front_image',
+        'vat_back_image',
+        'includes_vat',
         'payment_methods',
         'rental_options',
         'cost_per_km',
@@ -23,6 +30,7 @@ class CarRentalOfficesDetail extends Model
     protected $casts = [
         'payment_methods' => 'array',
         'rental_options' => 'array',
+        'includes_vat' => 'boolean',
         'is_available_for_delivery' => 'boolean', // جديد
         'is_available_for_rent' => 'boolean',     // جديد
     ];
