@@ -132,7 +132,7 @@ Artisan::command('rent:seed-approved-requests {--count=5} {--user_id=} {--govern
 })->purpose('Create approved rent service requests visible to car_rental_office providers');
 
 // Seed pending car rent orders (CarServiceOrder) suitable for provider acceptance testing
-Artisan::command('car-orders:seed-pending {--count=5} {--user_id=} {--note=}', function () {
+Artisan::command('car-orders:seed-pending {--count=5} {--user_id=} {--note=} {--car_rental_id=}', function () {
     $count = (int) ($this->option('count') ?? 5);
     if ($count < 1) {
         $this->error('Invalid --count value. It must be >= 1.');
@@ -167,7 +167,19 @@ Artisan::command('car-orders:seed-pending {--count=5} {--user_id=} {--note=}', f
         );
     }
 
-    $this->info("Creating {$count} pending_provider car rent orders for client #{$client->id}...");
+    // Optional car_rental_id for legacy schemas where column is NOT NULL
+    $providedCarRentalId = $this->option('car_rental_id');
+    $carRentalId = null;
+    if (!empty($providedCarRentalId)) {
+        $carRentalId = (int) $providedCarRentalId;
+        // Validate existence to avoid foreign key errors
+        if (!\App\Models\CarRental::find($carRentalId)) {
+            $this->error("car_rental_id={$carRentalId} not found. Proceeding with NULL car_rental_id.");
+            $carRentalId = null;
+        }
+    }
+
+    $this->info("Creating {$count} pending_provider car rent orders for client #{$client->id}..." . ($carRentalId ? " Using car_rental_id={$carRentalId}." : ''));
 
     $carCategories = ['economy', 'compact', 'midsize', 'suv'];
     $carModels = ['Toyota Yaris', 'Hyundai Elantra', 'Kia Cerato', 'Toyota Corolla', 'Nissan Sunny'];
@@ -181,17 +193,21 @@ Artisan::command('car-orders:seed-pending {--count=5} {--user_id=} {--note=}', f
 
             $order = CarServiceOrder::create([
                 'client_id'           => $client->id,
+                'car_rental_id'       => $carRentalId, // may be NULL in modern schema
                 'order_type'          => 'rent',
                 'provider_type'       => 'office',
                 'with_driver'         => false,
                 'car_category'        => $carCategories[array_rand($carCategories)],
                 'car_model'           => $carModels[array_rand($carModels)],
                 'payment_method'      => 'cash',
-                'rental_period_type'  => 'days',
+                // استخدم قيم ENUM الصحيحة: daily/weekly/monthly
+                'rental_period_type'  => 'daily',
                 'rental_duration'     => $duration,
                 'status'              => 'pending_provider',
                 'requested_price'     => rand(200, 800),
                 'from_location'       => $client->city ?: 'القاهرة',
+                // بعض البيئات قد تجعل to_location غير قابل لأن يكون NULL
+                'to_location'         => $client->city ?: 'القاهرة',
                 'delivery_location'   => $client->city ?: 'القاهرة',
                 'requested_date'      => now(),
                 'rental_start_at'     => $startAt,
@@ -207,6 +223,7 @@ Artisan::command('car-orders:seed-pending {--count=5} {--user_id=} {--note=}', f
 
             $created[] = $order->id;
         } catch (\Throwable $e) {
+            $this->error('Failed creating seed car order: ' . $e->getMessage());
             Log::error('Failed creating seed car order: ' . $e->getMessage());
         }
     }
