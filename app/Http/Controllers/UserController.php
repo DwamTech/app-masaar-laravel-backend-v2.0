@@ -204,6 +204,8 @@ class UserController extends Controller
             'location' => [
                 'latitude' => $user->latitude,
                 'longitude' => $user->longitude,
+                'governorate' => $user->governorate,
+                'city' => $user->city,
                 'current_address' => $user->current_address,
                 'location_updated_at' => $user->location_updated_at
             ]

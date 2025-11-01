@@ -193,4 +193,12 @@ class DeliveryRequest extends Model
             self::STATUS_REJECTED
         ]);
     }
+
+    /**
+     * Drivers who explicitly declined this request
+     */
+    public function driverRejections(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\DeliveryRequestDriverRejection::class);
+    }
 }

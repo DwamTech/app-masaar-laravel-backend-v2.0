@@ -201,17 +201,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/requests/{id}', [DeliveryRequestController::class, 'show']); // Get specific delivery request
         Route::patch('/requests/{id}/cancel', [DeliveryRequestController::class, 'cancel']); // Cancel delivery request
         
-        // Driver-specific routes
-    Route::get('/available-requests', [DeliveryRequestController::class, 'availableRequests']); // Get available requests for drivers
-    Route::post('/requests/{id}/offer', [DeliveryRequestController::class, 'submitOffer']); // Submit offer for delivery
-    Route::get('/my-offers', [DeliveryRequestController::class, 'myOffers']); // Get driver's offers
-    Route::get('/completed-requests', [DeliveryRequestController::class, 'completedRequests']); // Get driver's completed requests
+        // Driver-specific routes (requires eligibility: approved car)
+        Route::middleware(['driver.eligible'])->group(function () {
+            Route::get('/available-requests', [DeliveryRequestController::class, 'availableRequests']); // Get available requests for drivers
+            Route::post('/requests/{id}/offer', [DeliveryRequestController::class, 'submitOffer']); // Submit offer for delivery
+            Route::post('/requests/{id}/decline', [DeliveryRequestController::class, 'declineRequest']); // Driver declines request
+            Route::get('/my-offers', [DeliveryRequestController::class, 'myOffers']); // Get driver's offers
+            Route::get('/completed-requests', [DeliveryRequestController::class, 'completedRequests']); // Get driver's completed requests
+        });
         
         // Offer Management
         Route::post('/requests/{deliveryRequestId}/offers/{offerId}/accept', [DeliveryRequestController::class, 'acceptOffer']); // Accept driver offer
-        Route::get('/requests/{id}/offers', [DeliveryRequestController::class, 'getOffers']); // Get offers for request
-        Route::get('/requests/{id}/with-offers', [DeliveryRequestController::class, 'getDeliveryRequestWithOffers']); // Get delivery request with offers
-        
+        Route::get('/requests/{id}/offers', [DeliveryRequestController::class, 'getOffers']); // Get offers for request (?sort=price_asc|price_desc|duration_asc|duration_desc|created_desc)
+        Route::get('/requests/{id}/with-offers', [DeliveryRequestController::class, 'getDeliveryRequestWithOffers']); // Get delivery request with offers (?sort=...)
+    
         // Status Updates
         Route::patch('/requests/{id}/status', [DeliveryRequestController::class, 'updateStatus']); // Update delivery status
         Route::get('/requests/{id}/status-history', [DeliveryRequestController::class, 'getStatusHistory']); // Get status history

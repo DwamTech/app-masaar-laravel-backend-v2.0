@@ -7,6 +7,8 @@ use App\Models\DeliveryDestination;
 use App\Models\DeliveryOffer;
 use App\Models\DeliveryStatusHistory;
 use App\Models\User;
+
+use App\Models\DeliveryRequestDriverRejection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -507,11 +509,20 @@ class DeliveryRequestController extends Controller
                     if ($clientGovernorate) {
                         $availableDrivers = User::where('user_type', 'driver')
                             ->where('governorate', $clientGovernorate)
+                            ->where('push_notifications_enabled', 1)
+                            ->whereHas('driverCars', function($q){
+                                $q->where('owner_type', 'driver')->where('is_reviewed', 1);
+                            })
                             ->get();
                     } else {
-                        // إذا لم تكن المحافظة محددة، أرسل لجميع السائقين
-                        Log::warning("Client governorate not set, sending to all drivers");
-                        $availableDrivers = User::where('user_type', 'driver')->get();
+                        // إذا لم تكن المحافظة محددة، أرسل لجميع السائقين المؤهلين فقط
+                        Log::warning("Client governorate not set, sending to all eligible drivers");
+                        $availableDrivers = User::where('user_type', 'driver')
+                            ->where('push_notifications_enabled', 1)
+                            ->whereHas('driverCars', function($q){
+                                $q->where('owner_type', 'driver')->where('is_reviewed', 1);
+                            })
+                            ->get();
                     }
                     
                     Log::info("Found " . count($availableDrivers) . " drivers in governorate: {$clientGovernorate}");
@@ -637,7 +648,10 @@ class DeliveryRequestController extends Controller
         
         $query = DeliveryRequest::query()
             ->where('status', 'pending_offers')
-            ->whereNull('driver_id');
+            ->whereNull('driver_id')
+            ->whereDoesntHave('driverRejections', function($q) use ($driver) {
+                $q->where('driver_id', $driver->id);
+            });
 
         // فلترة حسب المحافظة - إظهار الطلبات من نفس محافظة السائق فقط
         if ($driver && $driver->governorate) {
@@ -685,8 +699,24 @@ class DeliveryRequestController extends Controller
     public function getOffers($deliveryRequestId)
     {
         $deliveryRequest = DeliveryRequest::findOrFail($deliveryRequestId);
-        
-        $offers = $deliveryRequest->offers()->with('driver')->get();
+
+        // قراءة باراميتر الفرز
+        $sortKey = strtolower(request()->query('sort', 'price_asc'));
+        $sortMap = [
+            'price_asc'     => ['offered_price', 'asc'],
+            'price_desc'    => ['offered_price', 'desc'],
+            'duration_asc'  => ['estimated_duration', 'asc'],
+            'duration_desc' => ['estimated_duration', 'desc'],
+            'created_asc'   => ['created_at', 'asc'],
+            'created_desc'  => ['created_at', 'desc'],
+        ];
+        [$column, $direction] = $sortMap[$sortKey] ?? ['offered_price', 'asc'];
+
+        $offers = $deliveryRequest
+            ->offers()
+            ->with('driver')
+            ->orderBy($column, $direction)
+            ->get();
 
         return response()->json([
             'status' => true,
@@ -700,12 +730,24 @@ class DeliveryRequestController extends Controller
     public function getDeliveryRequestWithOffers($deliveryRequestId)
     {
         try {
+            // قراءة باراميتر الفرز
+            $sortKey = strtolower(request()->query('sort', 'price_asc'));
+            $sortMap = [
+                'price_asc'     => ['offered_price', 'asc'],
+                'price_desc'    => ['offered_price', 'desc'],
+                'duration_asc'  => ['estimated_duration', 'asc'],
+                'duration_desc' => ['estimated_duration', 'desc'],
+                'created_asc'   => ['created_at', 'asc'],
+                'created_desc'  => ['created_at', 'desc'],
+            ];
+            [$column, $direction] = $sortMap[$sortKey] ?? ['offered_price', 'asc'];
+
             $deliveryRequest = DeliveryRequest::with([
                 'client',
                 'driver',
                 'destinations',
-                'offers' => function($query) {
-                    $query->with('driver')->orderBy('created_at', 'desc');
+                'offers' => function ($query) use ($column, $direction) {
+                    $query->with('driver')->orderBy($column, $direction);
                 }
             ])->find($deliveryRequestId);
 
@@ -729,7 +771,7 @@ class DeliveryRequestController extends Controller
             $offersCount = $deliveryRequest->offers->count();
             $message = 'تم جلب البيانات بنجاح';
             $lastMessage = null;
-            
+
             if ($offersCount === 0) {
                 if ($deliveryRequest->status === 'pending_offers') {
                     $message = 'لم يتم تقديم أي عروض على هذا الطلب بعد';
@@ -756,7 +798,7 @@ class DeliveryRequestController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching delivery request with offers: ' . $e->getMessage());
-            
+
             return response()->json([
                 'status' => false,
                 'message' => 'حدث خطأ في الاتصال بالخادم يرجي التحقق من اتصال الإنترنت والمحاولة مرة أخري'
@@ -848,6 +890,37 @@ class DeliveryRequestController extends Controller
                 'per_page' => $completedRequests->perPage(),
                 'total' => $completedRequests->total()
             ]
+        ]);
+    }
+
+    /**
+     * رفض السائق لطلب معيّن (لن يظهر له لاحقاً)
+     */
+    public function declineRequest(Request $request, $id)
+    {
+        $driver = Auth::user();
+        $deliveryRequest = DeliveryRequest::findOrFail($id);
+
+        if ($driver->user_type !== 'driver') {
+            return response()->json(['status' => false, 'message' => 'هذه الخدمة مخصصة للسائقين فقط'], 403);
+        }
+
+        if ($deliveryRequest->status !== DeliveryRequest::STATUS_PENDING_OFFERS || $deliveryRequest->driver_id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا يمكن رفض هذا الطلب في حالته الحالية'
+            ], 400);
+        }
+
+        $record = DeliveryRequestDriverRejection::firstOrCreate([
+            'delivery_request_id' => $deliveryRequest->id,
+            'driver_id' => $driver->id,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم رفض الطلب ولن يظهر لك مرة أخرى',
+            'declined' => true
         ]);
     }
 }
