@@ -176,8 +176,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/car-orders/{id}/offer', [CarServiceOrderController::class, 'offer']);
     Route::post('/car-orders/{order_id}/offer/{offer_id}/accept', [CarServiceOrderController::class, 'acceptOffer']);
     Route::post('/car-orders/{id}/accept-by-provider', [CarServiceOrderController::class, 'acceptByProvider']);
+    // Provider - Start & Complete actions
+    Route::post('/car-orders/{id}/start', [CarServiceOrderController::class, 'startByProvider']);
+    Route::post('/car-orders/{id}/complete', [CarServiceOrderController::class, 'completeByProvider']);
     // Provider - Available car orders (for car rental offices to pick up)
     Route::get('/provider/car-orders/available', [CarServiceOrderController::class, 'availableForProviders']);
+    // Provider - In-progress and completed car orders tied to token
+    Route::get('/provider/car-orders/in-progress', [CarServiceOrderController::class, 'inProgressForProvider']);
+    Route::get('/provider/car-orders/complete', [CarServiceOrderController::class, 'completedForProvider']);
     Route::patch('/car-rental-office-detail/{id}/availability', [CarRentalOfficesDetailController::class, 'updateAvailability']);
 
     // Delivery Service Routes

@@ -111,6 +111,56 @@ class CarServiceOrderController extends Controller
     }
 
     /**
+     * [مزود الخدمة] عرض الطلبات القيد التنفيذ المرتبطة بالمقدم الحالي (حسب التوكين).
+     */
+    public function inProgressForProvider(Request $request)
+    {
+        $user = Auth::user();
+        $myCarRental = $user->car_rental ?? $user->carRental ?? null;
+
+        $orders = CarServiceOrder::where('order_type', 'rent')
+            ->where('status', 'in_progress')
+            ->where(function ($q) use ($user, $myCarRental) {
+                $q->where('provider_id', $user->id);
+                if ($myCarRental) { $q->orWhere('car_rental_id', $myCarRental->id); }
+            })
+            ->with(['client', 'provider', 'carRental', 'offers', 'statusHistories'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'orders' => $orders,
+            'count'  => $orders->count(),
+        ]);
+    }
+
+    /**
+     * [مزود الخدمة] عرض الطلبات المنتهية للمقدم الحالي (حسب التوكين).
+     */
+    public function completedForProvider(Request $request)
+    {
+        $user = Auth::user();
+        $myCarRental = $user->car_rental ?? $user->carRental ?? null;
+
+        $orders = CarServiceOrder::where('order_type', 'rent')
+            ->where('status', 'finished')
+            ->where(function ($q) use ($user, $myCarRental) {
+                $q->where('provider_id', $user->id);
+                if ($myCarRental) { $q->orWhere('car_rental_id', $myCarRental->id); }
+            })
+            ->with(['client', 'provider', 'carRental', 'offers', 'statusHistories'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'orders' => $orders,
+            'count'  => $orders->count(),
+        ]);
+    }
+
+    /**
      * 3. عرض تفاصيل طلب معين.
      */
     public function show($id)
@@ -219,6 +269,66 @@ class CarServiceOrderController extends Controller
     }
 
     /**
+     * [مقدم خدمة] بدء تنفيذ الطلب (تحويل الحالة من accepted إلى in_progress).
+     */
+    public function startByProvider(Request $request, $id)
+    {
+        $order = CarServiceOrder::findOrFail($id);
+        $currentUser = Auth::user();
+
+        // تحقق من صلاحية مقدم الخدمة على هذا الطلب
+        if (!$this->isOrderProvider($order, $currentUser)) {
+            return response()->json(['status' => false, 'message' => 'غير مصرح لك بإدارة هذا الطلب'], 403);
+        }
+
+        if ($order->status !== 'accepted') {
+            return response()->json(['status' => false, 'message' => 'لا يمكن البدء بهذا الطلب في حالته الحالية'], 409);
+        }
+
+        $order->status = 'in_progress';
+        $order->save();
+
+        OrderStatusHistory::create([
+            'order_id' => $order->id,
+            'status' => 'in_progress',
+            'changed_by' => $currentUser->id,
+            'note' => 'بدأ تنفيذ الطلب من قبل مقدم الخدمة',
+        ]);
+
+        return response()->json(['status' => true, 'message' => 'تم بدء تنفيذ الطلب', 'order' => $order]);
+    }
+
+    /**
+     * [مقدم خدمة] إنهاء تنفيذ الطلب (تحويل الحالة من in_progress إلى finished).
+     */
+    public function completeByProvider(Request $request, $id)
+    {
+        $order = CarServiceOrder::findOrFail($id);
+        $currentUser = Auth::user();
+
+        // تحقق من صلاحية مقدم الخدمة على هذا الطلب
+        if (!$this->isOrderProvider($order, $currentUser)) {
+            return response()->json(['status' => false, 'message' => 'غير مصرح لك بإدارة هذا الطلب'], 403);
+        }
+
+        if ($order->status !== 'in_progress') {
+            return response()->json(['status' => false, 'message' => 'لا يمكن إنهاء هذا الطلب في حالته الحالية'], 409);
+        }
+
+        $order->status = 'finished';
+        $order->save();
+
+        OrderStatusHistory::create([
+            'order_id' => $order->id,
+            'status' => 'finished',
+            'changed_by' => $currentUser->id,
+            'note' => 'تم إنهاء الطلب من قبل مقدم الخدمة',
+        ]);
+
+        return response()->json(['status' => true, 'message' => 'تم إنهاء الطلب بنجاح', 'order' => $order]);
+    }
+
+    /**
      * [أدمن] جلب كل طلبات التأجير مع تفاصيلها وحالاتها.
      */
     public function adminIndex(Request $request)
@@ -307,5 +417,20 @@ class CarServiceOrderController extends Controller
         Log::info("[Notification Helper] Found " . count($tokens) . " token(s) for User #{$user->id}. Attempting to send...");
         Notifier::send($user, $type, $title, $message);
         Log::info("[Notification Helper] SUCCESS: Notifier::send called for User #{$user->id}.");
+    }
+
+    /**
+     * التحقق من كون المستخدم الحالي هو مقدم الخدمة لهذا الطلب (سواء المعرّف user_id أو car_rental_id).
+     */
+    private function isOrderProvider(CarServiceOrder $order, User $user): bool
+    {
+        if (!empty($order->provider_id) && $order->provider_id === $user->id) {
+            return true;
+        }
+        $myCarRental = $user->car_rental ?? $user->carRental ?? null;
+        if ($myCarRental && !empty($order->car_rental_id) && $order->car_rental_id === $myCarRental->id) {
+            return true;
+        }
+        return false;
     }
 }
