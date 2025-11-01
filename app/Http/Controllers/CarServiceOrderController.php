@@ -85,7 +85,13 @@ class CarServiceOrderController extends Controller
         $query = CarServiceOrder::query();
         if ($request->has('client_id')) { $query->where('client_id', $request->client_id); }
         if ($request->has('provider_id')) { $query->where('provider_id', $request->provider_id); }
-        if ($request->has('status')) { $query->where('status', $request->status); }
+        if ($request->has('status')) {
+            $status = $request->status;
+            // دعم القيم المستخدمة في الفلاتر من الفلاتر: in_progress/completed
+            if ($status === 'in_progress') { $status = 'started'; }
+            if ($status === 'completed') { $status = 'finished'; }
+            $query->where('status', $status);
+        }
         if ($request->has('order_type')) { $query->where('order_type', $request->order_type); }
         $orders = $query->with(['client', 'provider', 'carRental', 'offers', 'statusHistories'])->orderBy('created_at', 'desc')->get();
         return response()->json(['status' => true, 'orders' => $orders]);
@@ -119,7 +125,7 @@ class CarServiceOrderController extends Controller
         $myCarRental = $user->car_rental ?? $user->carRental ?? null;
 
         $orders = CarServiceOrder::where('order_type', 'rent')
-            ->where('status', 'in_progress')
+            ->where('status', 'started')
             ->where(function ($q) use ($user, $myCarRental) {
                 $q->where('provider_id', $user->id);
                 if ($myCarRental) { $q->orWhere('car_rental_id', $myCarRental->id); }
@@ -285,12 +291,12 @@ class CarServiceOrderController extends Controller
             return response()->json(['status' => false, 'message' => 'لا يمكن البدء بهذا الطلب في حالته الحالية'], 409);
         }
 
-        $order->status = 'in_progress';
+        $order->status = 'started';
         $order->save();
 
         OrderStatusHistory::create([
             'order_id' => $order->id,
-            'status' => 'in_progress',
+            'status' => 'started',
             'changed_by' => $currentUser->id,
             'note' => 'بدأ تنفيذ الطلب من قبل مقدم الخدمة',
         ]);
@@ -311,7 +317,7 @@ class CarServiceOrderController extends Controller
             return response()->json(['status' => false, 'message' => 'غير مصرح لك بإدارة هذا الطلب'], 403);
         }
 
-        if ($order->status !== 'in_progress') {
+        if ($order->status !== 'started') {
             return response()->json(['status' => false, 'message' => 'لا يمكن إنهاء هذا الطلب في حالته الحالية'], 409);
         }
 
