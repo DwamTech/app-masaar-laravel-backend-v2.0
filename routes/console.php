@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\ServiceRequest;
+use App\Models\CarServiceOrder;
+use App\Models\OrderStatusHistory;
 use App\Support\Notifier;
 
 Artisan::command('inspire', function () {
@@ -128,3 +130,88 @@ Artisan::command('rent:seed-approved-requests {--count=5} {--user_id=} {--govern
     $this->info('You can view them via GET /api/provider/service-requests as a car_rental_office.');
     return 0;
 })->purpose('Create approved rent service requests visible to car_rental_office providers');
+
+// Seed pending car rent orders (CarServiceOrder) suitable for provider acceptance testing
+Artisan::command('car-orders:seed-pending {--count=5} {--user_id=} {--note=}', function () {
+    $count = (int) ($this->option('count') ?? 5);
+    if ($count < 1) {
+        $this->error('Invalid --count value. It must be >= 1.');
+        return 1;
+    }
+
+    $client = null;
+    $note = $this->option('note') ?? 'طلب تجريبي لتجربة قبول مقدم الخدمة';
+
+    // Resolve client user
+    if ($uid = $this->option('user_id')) {
+        $client = User::find($uid);
+        if (!$client) {
+            $this->error("User with ID {$uid} not found.");
+            return 1;
+        }
+    } else {
+        // Fallback test client for car orders
+        $client = User::firstOrCreate(
+            ['email' => 'seed.car.client@example.com'],
+            [
+                'name' => 'Seed Car Client',
+                'password' => bcrypt('password'),
+                'phone' => '01000000001',
+                'governorate' => 'القاهرة',
+                'city' => 'مدينة نصر',
+                'user_type' => 'normal',
+                'is_approved' => true,
+                'account_active' => true,
+                'is_email_verified' => true,
+            ]
+        );
+    }
+
+    $this->info("Creating {$count} pending_provider car rent orders for client #{$client->id}...");
+
+    $carCategories = ['economy', 'compact', 'midsize', 'suv'];
+    $carModels = ['Toyota Yaris', 'Hyundai Elantra', 'Kia Cerato', 'Toyota Corolla', 'Nissan Sunny'];
+    $created = [];
+
+    for ($i = 0; $i < $count; $i++) {
+        try {
+            $duration = rand(1, 7);
+            $startAt = now()->addDays(rand(1, 5));
+            $endAt = (clone $startAt)->addDays($duration);
+
+            $order = CarServiceOrder::create([
+                'client_id'           => $client->id,
+                'order_type'          => 'rent',
+                'provider_type'       => 'office',
+                'with_driver'         => false,
+                'car_category'        => $carCategories[array_rand($carCategories)],
+                'car_model'           => $carModels[array_rand($carModels)],
+                'payment_method'      => 'cash',
+                'rental_period_type'  => 'days',
+                'rental_duration'     => $duration,
+                'status'              => 'pending_provider',
+                'requested_price'     => rand(200, 800),
+                'from_location'       => $client->city ?: 'القاهرة',
+                'delivery_location'   => $client->city ?: 'القاهرة',
+                'requested_date'      => now(),
+                'rental_start_at'     => $startAt,
+                'rental_end_at'       => $endAt,
+            ]);
+
+            OrderStatusHistory::create([
+                'order_id'   => $order->id,
+                'status'     => 'pending_provider',
+                'changed_by' => $client->id,
+                'note'       => $note,
+            ]);
+
+            $created[] = $order->id;
+        } catch (\Throwable $e) {
+            Log::error('Failed creating seed car order: ' . $e->getMessage());
+        }
+    }
+
+    $this->info('Done. Created ' . count($created) . ' car orders: [' . implode(', ', $created) . ']');
+    $this->info('Providers can view them via GET /api/provider/car-orders/available or /api/car-orders?status=pending_provider.');
+    return 0;
+})->purpose('Create pending_provider car rent orders visible to car_rental_office providers');
