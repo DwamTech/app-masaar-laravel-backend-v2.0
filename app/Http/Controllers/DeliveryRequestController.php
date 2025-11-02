@@ -1072,19 +1072,26 @@ class DeliveryRequestController extends Controller
                     ->sum('agreed_price');
             }
 
-            $avgResponseMinutesRaw = DeliveryOffer::where('driver_id', $driver->id)
-                ->join('delivery_requests', 'delivery_requests.id', '=', 'delivery_offers.delivery_request_id');
-            if ($fromDate && $toDate) {
-                $avgResponseMinutesRaw->whereBetween('delivery_offers.created_at', [$fromDate, $toDate]);
-            } elseif ($fromDate) {
-                $avgResponseMinutesRaw->where('delivery_offers.created_at', '>=', $fromDate);
-            } elseif ($toDate) {
-                $avgResponseMinutesRaw->where('delivery_offers.created_at', '<=', $toDate);
+            // حساب متوسط زمن الاستجابة للعروض (مع معالجة أعطال قاعدة البيانات)
+            $avgResponseMinutes = 0;
+            try {
+                $avgResponseMinutesRaw = DeliveryOffer::where('driver_id', $driver->id)
+                    ->join('delivery_requests', 'delivery_requests.id', '=', 'delivery_offers.delivery_request_id');
+                if ($fromDate && $toDate) {
+                    $avgResponseMinutesRaw->whereBetween('delivery_offers.created_at', [$fromDate, $toDate]);
+                } elseif ($fromDate) {
+                    $avgResponseMinutesRaw->where('delivery_offers.created_at', '>=', $fromDate);
+                } elseif ($toDate) {
+                    $avgResponseMinutesRaw->where('delivery_offers.created_at', '<=', $toDate);
+                }
+                $avgResponseMinutesVal = $avgResponseMinutesRaw
+                    ->select(DB::raw('AVG(TIMESTAMPDIFF(MINUTE, delivery_requests.created_at, delivery_offers.created_at)) as avg_min'))
+                    ->value('avg_min');
+                $avgResponseMinutes = $avgResponseMinutesVal ? intval(round($avgResponseMinutesVal)) : 0;
+            } catch (\Throwable $calcEx) {
+                Log::warning('driverStats avg_response_minutes calculation failed', ['message' => $calcEx->getMessage()]);
+                $avgResponseMinutes = 0; // fallback آمن
             }
-            $avgResponseMinutesVal = $avgResponseMinutesRaw
-                ->select(DB::raw('AVG(TIMESTAMPDIFF(MINUTE, delivery_requests.created_at, delivery_offers.created_at)) as avg_min'))
-                ->value('avg_min');
-            $avgResponseMinutes = $avgResponseMinutesVal ? intval(round($avgResponseMinutesVal)) : 0;
 
             $avgEstimatedDurationAccepted = DeliveryOffer::where('driver_id', $driver->id)
                 ->where('status', DeliveryOffer::STATUS_ACCEPTED)
