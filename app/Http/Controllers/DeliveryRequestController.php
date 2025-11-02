@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Support\Notifier;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class DeliveryRequestController extends Controller
 {
@@ -961,5 +962,207 @@ class DeliveryRequestController extends Controller
             'message' => 'تم رفض الطلب ولن يظهر لك مرة أخرى',
             'declined' => true
         ]);
+    }
+
+    /**
+     * إحصائيات شاملة تهم مقدم خدمة التوصيل (السائق)
+     * Endpoint: GET /delivery/driver/stats
+     * Query (اختياري): ?from=YYYY-MM-DD&to=YYYY-MM-DD&period=day|week|month
+     */
+    public function driverStats(Request $request)
+    {
+        try {
+            $driver = Auth::user();
+
+            $from = $request->query('from');
+            $to = $request->query('to');
+            $period = $request->query('period');
+
+            $fromDate = $from ? Carbon::parse($from)->startOfDay() : null;
+            $toDate = $to ? Carbon::parse($to)->endOfDay() : null;
+            if ($period && (!$fromDate || !$toDate)) {
+                $now = Carbon::now();
+                if ($period === 'day') {
+                    $fromDate = $fromDate ?: $now->copy()->startOfDay();
+                    $toDate = $toDate ?: $now->copy()->endOfDay();
+                } elseif ($period === 'week') {
+                    $fromDate = $fromDate ?: $now->copy()->startOfWeek();
+                    $toDate = $toDate ?: $now->copy()->endOfWeek();
+                } elseif ($period === 'month') {
+                    $fromDate = $fromDate ?: $now->copy()->startOfMonth();
+                    $toDate = $toDate ?: $now->copy()->endOfMonth();
+                }
+            }
+
+            $availableQuery = DeliveryRequest::query()
+                ->where('status', DeliveryRequest::STATUS_PENDING_OFFERS)
+                ->whereNull('driver_id')
+                ->whereDoesntHave('driverRejections', function($q) use ($driver) {
+                    $q->where('driver_id', $driver->id);
+                });
+            if ($driver && $driver->governorate) {
+                $driverGov = $driver->governorate;
+                $normalizedGov = $this->normalizeGovernorate($driverGov);
+                $govVariants = [$driverGov];
+                if ($normalizedGov !== $driverGov) { $govVariants[] = $normalizedGov; }
+                $prefixedNormalized = 'محافظة ' . $normalizedGov;
+                if (!in_array($prefixedNormalized, $govVariants, true)) { $govVariants[] = $prefixedNormalized; }
+                $availableQuery->whereIn('governorate', $govVariants);
+            }
+            $availableRequestsCount = $availableQuery->count();
+
+            $baseOffersQuery = DeliveryOffer::where('driver_id', $driver->id);
+            if ($fromDate && $toDate) {
+                $baseOffersQuery->whereBetween('created_at', [$fromDate, $toDate]);
+            } elseif ($fromDate) {
+                $baseOffersQuery->where('created_at', '>=', $fromDate);
+            } elseif ($toDate) {
+                $baseOffersQuery->where('created_at', '<=', $toDate);
+            }
+            $offersTotal = (clone $baseOffersQuery)->count();
+            $offersByStatus = (clone $baseOffersQuery)
+                ->select('status', DB::raw('COUNT(*) as cnt'))
+                ->groupBy('status')
+                ->pluck('cnt', 'status')
+                ->toArray();
+            $offersPending = intval($offersByStatus[DeliveryOffer::STATUS_PENDING] ?? 0);
+            $offersAccepted = intval($offersByStatus[DeliveryOffer::STATUS_ACCEPTED] ?? 0);
+            $offersRejected = intval($offersByStatus[DeliveryOffer::STATUS_REJECTED] ?? 0);
+            $offersWithdrawn = intval($offersByStatus[DeliveryOffer::STATUS_WITHDRAWN] ?? 0);
+
+            $consideredOffers = max(1, $offersPending + $offersAccepted + $offersRejected + $offersWithdrawn);
+            $acceptanceRate = round(($offersAccepted / $consideredOffers) * 100, 2);
+
+            $activeStatuses = [
+                DeliveryRequest::STATUS_ACCEPTED_WAITING_DRIVER,
+                DeliveryRequest::STATUS_DRIVER_ARRIVED,
+                DeliveryRequest::STATUS_TRIP_STARTED,
+            ];
+            $activeAssignmentsCount = DeliveryRequest::where('driver_id', $driver->id)
+                ->whereIn('status', $activeStatuses)
+                ->count();
+            $completedAssignmentsCount = DeliveryRequest::where('driver_id', $driver->id)
+                ->where('status', DeliveryRequest::STATUS_TRIP_COMPLETED)
+                ->count();
+            $cancelledAssignmentsCount = DeliveryRequest::where('driver_id', $driver->id)
+                ->where('status', DeliveryRequest::STATUS_CANCELLED)
+                ->count();
+
+            $now = Carbon::now();
+            $revenueTotal = (float) DeliveryRequest::where('driver_id', $driver->id)
+                ->where('status', DeliveryRequest::STATUS_TRIP_COMPLETED)
+                ->sum('agreed_price');
+            $revenueToday = (float) DeliveryRequest::where('driver_id', $driver->id)
+                ->where('status', DeliveryRequest::STATUS_TRIP_COMPLETED)
+                ->whereBetween('completed_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])
+                ->sum('agreed_price');
+            $revenueWeek = (float) DeliveryRequest::where('driver_id', $driver->id)
+                ->where('status', DeliveryRequest::STATUS_TRIP_COMPLETED)
+                ->whereBetween('completed_at', [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()])
+                ->sum('agreed_price');
+            $revenueMonth = (float) DeliveryRequest::where('driver_id', $driver->id)
+                ->where('status', DeliveryRequest::STATUS_TRIP_COMPLETED)
+                ->whereBetween('completed_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+                ->sum('agreed_price');
+            $revenueInRange = null;
+            if ($fromDate && $toDate) {
+                $revenueInRange = (float) DeliveryRequest::where('driver_id', $driver->id)
+                    ->where('status', DeliveryRequest::STATUS_TRIP_COMPLETED)
+                    ->whereBetween('completed_at', [$fromDate, $toDate])
+                    ->sum('agreed_price');
+            }
+
+            $avgResponseMinutesRaw = DeliveryOffer::where('driver_id', $driver->id)
+                ->join('delivery_requests', 'delivery_requests.id', '=', 'delivery_offers.delivery_request_id');
+            if ($fromDate && $toDate) {
+                $avgResponseMinutesRaw->whereBetween('delivery_offers.created_at', [$fromDate, $toDate]);
+            } elseif ($fromDate) {
+                $avgResponseMinutesRaw->where('delivery_offers.created_at', '>=', $fromDate);
+            } elseif ($toDate) {
+                $avgResponseMinutesRaw->where('delivery_offers.created_at', '<=', $toDate);
+            }
+            $avgResponseMinutesVal = $avgResponseMinutesRaw
+                ->select(DB::raw('AVG(TIMESTAMPDIFF(MINUTE, delivery_requests.created_at, delivery_offers.created_at)) as avg_min'))
+                ->value('avg_min');
+            $avgResponseMinutes = $avgResponseMinutesVal ? intval(round($avgResponseMinutesVal)) : 0;
+
+            $avgEstimatedDurationAccepted = DeliveryOffer::where('driver_id', $driver->id)
+                ->where('status', DeliveryOffer::STATUS_ACCEPTED)
+                ->avg('estimated_duration');
+            $avgEstimatedDurationAccepted = $avgEstimatedDurationAccepted ? intval(round($avgEstimatedDurationAccepted)) : 0;
+
+            $availability = [
+                'is_available' => (bool) ($driver->is_available ?? false),
+                'governorate' => $driver->governorate ?? null,
+                'is_eligible' => true,
+            ];
+
+            $recentOffers = DeliveryOffer::where('driver_id', $driver->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get(['id', 'delivery_request_id', 'status', 'offered_price', 'estimated_duration', 'created_at']);
+            $recentActiveRequests = DeliveryRequest::where('driver_id', $driver->id)
+                ->whereIn('status', $activeStatuses)
+                ->orderBy('updated_at', 'desc')
+                ->limit(5)
+                ->get(['id', 'status', 'agreed_price', 'estimated_duration', 'delivery_time']);
+            $recentCompletedRequests = DeliveryRequest::where('driver_id', $driver->id)
+                ->where('status', DeliveryRequest::STATUS_TRIP_COMPLETED)
+                ->orderBy('completed_at', 'desc')
+                ->limit(5)
+                ->get(['id', 'status', 'agreed_price', 'estimated_duration', 'completed_at']);
+
+            return response()->json([
+                'status' => true,
+                'stats' => [
+                    'counts' => [
+                        'available_requests' => $availableRequestsCount,
+                        'my_offers' => [
+                            'total' => $offersTotal,
+                            'pending' => $offersPending,
+                            'accepted' => $offersAccepted,
+                            'rejected' => $offersRejected,
+                            'withdrawn' => $offersWithdrawn,
+                        ],
+                        'assignments' => [
+                            'active' => $activeAssignmentsCount,
+                            'completed' => $completedAssignmentsCount,
+                            'cancelled' => $cancelledAssignmentsCount,
+                        ],
+                    ],
+                    'revenue' => [
+                        'total' => $revenueTotal,
+                        'today' => $revenueToday,
+                        'week' => $revenueWeek,
+                        'month' => $revenueMonth,
+                        'in_range' => $revenueInRange,
+                    ],
+                    'performance' => [
+                        'acceptance_rate_percent' => $acceptanceRate,
+                        'avg_offer_response_minutes' => $avgResponseMinutes,
+                        'avg_estimated_duration_accepted' => $avgEstimatedDurationAccepted,
+                    ],
+                    'availability' => $availability,
+                    'recent_activity' => [
+                        'recent_offers' => $recentOffers,
+                        'active_requests' => $recentActiveRequests,
+                        'completed_requests' => $recentCompletedRequests,
+                    ],
+                    'filters' => [
+                        'range' => [
+                            'from' => $fromDate ? $fromDate->toDateString() : null,
+                            'to' => $toDate ? $toDate->toDateString() : null,
+                        ],
+                        'period' => $period,
+                    ],
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('driverStats error', ['message' => $e->getMessage()]);
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to load driver statistics',
+            ], 500);
+        }
     }
 }

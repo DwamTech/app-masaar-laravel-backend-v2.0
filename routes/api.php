@@ -210,6 +210,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/requests/{id}/decline', [DeliveryRequestController::class, 'declineRequest']); // Driver declines request
             Route::get('/my-offers', [DeliveryRequestController::class, 'myOffers']); // Get driver's offers
             Route::get('/completed-requests', [DeliveryRequestController::class, 'completedRequests']); // Get driver's completed requests
+            Route::get('/driver/stats', [DeliveryRequestController::class, 'driverStats']); // Driver statistics overview
         });
         
         // Offer Management
