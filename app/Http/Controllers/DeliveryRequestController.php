@@ -689,8 +689,21 @@ class DeliveryRequestController extends Controller
             }
         ])->orderBy('created_at', 'desc')->paginate(15);
 
+        // توحيد صيغة الاستجابة مع بقية الواجهات المستخدمة في تطبيق السائق
+        // إبقاء المفتاح القديم "available_requests" لضمان عدم كسر التوافق مع سكربتات الاختبار
         return response()->json([
             'status' => true,
+            'success' => true,
+            // القائمة المسطحة التي يستهلكها تطبيق السائق
+            'data' => $availableRequests->items(),
+            // تفاصيل الترقيم
+            'pagination' => [
+                'current_page' => $availableRequests->currentPage(),
+                'last_page' => $availableRequests->lastPage(),
+                'per_page' => $availableRequests->perPage(),
+                'total' => $availableRequests->total()
+            ],
+            // الحقل القديم المتوافق مع أدوات الاختبار الداخلية
             'available_requests' => $availableRequests
         ]);
     }
