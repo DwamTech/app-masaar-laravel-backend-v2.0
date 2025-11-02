@@ -417,6 +417,8 @@ Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function
     // Cars - Admin separated listings
     Route::get('/driver-cars', [CarController::class, 'adminDriverCars']);
     Route::get('/office-cars', [CarController::class, 'adminOfficeCars']);
+    // Car review (approve/unapprove) by admin
+    Route::patch('/cars/{id}/review', [CarController::class, 'review']);
     
     // Security Permits - Admin Routes
     Route::prefix('security-permits')->group(function () {

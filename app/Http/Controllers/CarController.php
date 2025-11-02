@@ -7,6 +7,7 @@ use App\Models\CarRental;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\Notifier;
 
 class CarController extends Controller
 {
@@ -322,6 +323,35 @@ class CarController extends Controller
 
         $car->is_reviewed = $newState;
         $car->save();
+
+        // إرسال إشعار للسائق عند اعتماد العربية من قبل الأدمن
+        if ($newState === true && $car->owner_type === 'driver') {
+            try {
+                $driver = $car->carRental->user; // مستخدم السائق المرتبط بمقدم خدمة السيارة
+                if ($driver) {
+                    $title = 'تم قبول عربيتك';
+                    $msg   = sprintf(
+                        'تم اعتماد عربيتك من قبل الإدارة: النوع %s، الموديل %s، رقم اللوحة %s. أصبحت الآن متاحة للخدمة.',
+                        (string)($car->car_type ?? 'غير محدد'),
+                        (string)($car->car_model ?? 'غير محدد'),
+                        (string)($car->car_plate_number ?? 'غير محدد')
+                    );
+                    $data  = [
+                        'type' => 'driver_car_approved',
+                        'car_id' => (string)$car->id,
+                        'owner_type' => $car->owner_type,
+                        'is_reviewed' => '1',
+                    ];
+                    Notifier::send($driver, 'driver_car_approved', $title, $msg, $data, null);
+                }
+            } catch (\Throwable $e) {
+                // عدم منع الاستجابة بسبب فشل الإشعار؛ نسجّل الخطأ فقط
+                \Log::warning('Failed to send driver car approved notification', [
+                    'car_id' => $car->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
             'status' => true,
