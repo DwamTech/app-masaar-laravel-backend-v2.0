@@ -642,6 +642,19 @@ class DeliveryRequestController extends Controller
     }
 
     /**
+     * تطبيع اسم المحافظة لتقليل عدم التطابق بين الصيغ المختلفة
+     * مثال: إزالة بادئة "محافظة" إن وجدت
+     */
+    private function normalizeGovernorate(?string $name): string
+    {
+        if (!$name) return '';
+        $n = trim($name);
+        // إزالة "محافظة " في بداية الاسم إن وجدت
+        $n = preg_replace('/^\s*محافظة\s+/u', '', $n);
+        return $n;
+    }
+
+    /**
      * عرض الطلبات المتاحة للسائقين
      */
     public function availableRequests(Request $request)
@@ -657,7 +670,18 @@ class DeliveryRequestController extends Controller
 
         // فلترة حسب المحافظة - إظهار الطلبات من نفس محافظة السائق فقط
         if ($driver && $driver->governorate) {
-            $query->where('governorate', $driver->governorate);
+            $driverGov = $driver->governorate;
+            $normalizedGov = $this->normalizeGovernorate($driverGov);
+            $govVariants = [$driverGov];
+            if ($normalizedGov !== $driverGov) {
+                $govVariants[] = $normalizedGov;
+            }
+            // إضافة صيغة "محافظة <الاسم>" لضمان التوافق مع بيانات العملاء/المصدر
+            $prefixedNormalized = 'محافظة ' . $normalizedGov;
+            if (!in_array($prefixedNormalized, $govVariants, true)) {
+                $govVariants[] = $prefixedNormalized;
+            }
+            $query->whereIn('governorate', $govVariants);
         }
 
         // فلترة حسب نوع الرحلة
