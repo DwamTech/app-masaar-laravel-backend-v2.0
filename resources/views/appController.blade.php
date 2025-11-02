@@ -1489,13 +1489,157 @@ function updateCarCard(col, c, isApproved, img) {
   }
 }
 
+/** ====== طلبات الشبكة (سيارات خدمة التوصيل) ====== **/
+async function fetchDriverCars(auto = false) {
+  abortIfInflight('driverCars');
+
+  const controller = new AbortController();
+  inflight.driverCars = controller;
+
+  try {
+    const token = getTokenOrThrow();
+    if (!auto && !document.getElementById('driver-cars-container')) {
+      document.getElementById('controlTabContent').innerHTML =
+        `<div class="text-center py-5"><div class="spinner-border"></div></div>`;
+    }
+
+    const res = await fetch(`${baseUrl}/api/admin/driver-cars`, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
+      signal: controller.signal
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`Driver cars fetch failed: ${res.status} ${t}`);
+    }
+
+    const data = await res.json();
+
+    if (currentTab !== 'driverCars') return;
+
+    driverCars = Array.isArray(data) ? data : (data?.cars ?? []);
+    renderDriverCars(!document.getElementById('driver-cars-container'));
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    if (!auto) {
+      console.error('[CONTROL] Driver cars error:', err);
+      document.getElementById('controlTabContent').innerHTML =
+        `<div class="alert alert-danger">تعذر تحميل سيارات التوصيل! ${escapeHTML(err.message)}</div>`;
+    }
+  } finally {
+    inflight.driverCars = null;
+  }
+}
+
+function renderDriverCars(isFirstRender = false) {
+  const container = document.getElementById('controlTabContent');
+
+  if (isFirstRender) {
+    if (!driverCars.length) {
+      container.innerHTML = `<div class="alert alert-warning">لا توجد سيارات خدمة التوصيل حالياً.</div>`;
+      return;
+    }
+    container.innerHTML = `
+      <div class="modern-cards-container">
+        <div class="row g-4" id="driver-cars-container"></div>
+      </div>`;
+  }
+
+  const cards = document.getElementById('driver-cars-container');
+  if (!cards) return;
+
+  const existing = new Set([...cards.children].map(c => c.id));
+  const incoming = new Set(driverCars.map(c => `driver-car-card-${c.id}`));
+
+  driverCars.forEach(c => {
+    const cardId = `driver-car-card-${c.id}`;
+    const isApproved = Number(c?.is_reviewed) === 1 || c?.is_reviewed === true;
+    const img = c?.car_image_front || c?.car_image_back || '';
+
+    let col = document.getElementById(cardId);
+    if (!col) {
+      col = document.createElement('div');
+      col.className = 'col-md-6 col-lg-4';
+      col.id = cardId;
+      col.innerHTML = createDriverCarCardHTML(c, isApproved, img);
+      cards.appendChild(col);
+    } else {
+      updateDriverCarCard(col, c, isApproved, img);
+    }
+  });
+
+  existing.forEach(id => {
+    if (!incoming.has(id)) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+  });
+}
+
+function createDriverCarCardHTML(c, isApproved, img) {
+  const title = c?.car_model || c?.car_type || 'سيارة توصيل';
+  const subtitle = c?.car_plate_number ? `لوحة: ${c.car_plate_number}` : (c?.car_color ? `اللون: ${c.car_color}` : '');
+
+  return `
+    <div class="modern-card new-card-animation js-open-details" data-kind="driver-car" data-id="${c.id}" tabindex="0" role="button">
+      <div class="modern-card-header">
+        ${img ? `<img src="${escapeAttr(img)}" class="modern-property-image" onclick="openImgFull('${escapeAttr(img)}')">` : ''}
+        <div class="modern-info-text">
+          <div class="modern-title">${escapeHTML(String(title))}</div>
+          <div class="modern-subtitle">${escapeHTML(String(subtitle))}</div>
+        </div>
+      </div>
+      <div class="modern-card-body">
+        <div class="modern-details">
+          <div class="modern-detail-item">
+            <div class="modern-detail-icon">💰</div>
+            <div class="modern-detail-label">السعر:</div>
+            <div class="modern-detail-value">${escapeHTML(String(c?.price ?? '-'))} جنيه</div>
+          </div>
+          <div class="modern-detail-item">
+            <div class="modern-detail-icon">🎨</div>
+            <div class="modern-detail-label">اللون:</div>
+            <div class="modern-detail-value">${escapeHTML(String(c?.car_color ?? '-'))}</div>
+          </div>
+        </div>
+        <div class="modern-actions">
+          <button type="button"
+            class="modern-favorite-btn ${isApproved ? 'active' : ''}"
+            data-id="${c.id}" data-kind="driver-car">
+            <i class="bi ${isApproved ? 'bi-x-circle' : 'bi-check2'}"></i> ${isApproved ? 'رفض' : 'قبول'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function updateDriverCarCard(col, c, isApproved, img) {
+  const title = col.querySelector('.modern-title');
+  const sub = col.querySelector('.modern-subtitle');
+  if (title) title.textContent = c?.car_model || c?.car_type || 'سيارة توصيل';
+  if (sub) sub.textContent = c?.car_plate_number ? `لوحة: ${c.car_plate_number}` : (c?.car_color ? `اللون: ${c.car_color}` : '');
+
+  const imgEl = col.querySelector('.modern-property-image');
+  if (imgEl) {
+    if (img) { imgEl.src = img; } else { imgEl.remove(); }
+  }
+
+  const btn = col.querySelector('.modern-favorite-btn');
+  if (btn) {
+    btn.classList.toggle('active', isApproved);
+    btn.innerHTML = `<i class=\"bi ${isApproved ? 'bi-x-circle' : 'bi-check2'}\"></i> ${isApproved ? 'رفض' : 'قبول'}`;
+    btn.dataset.id = c.id;
+    btn.dataset.kind = 'driver-car';
+  }
+}
+
 /** ====== تفعيل/تعطيل “المفضل” (تفويض أحداث) ====== **/
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.modern-favorite-btn');
   if (!btn) return;
 
   const id = btn.dataset.id;
-  const kind = btn.dataset.kind; // 'restaurant' | 'property' | 'car'
+  const kind = btn.dataset.kind; // 'restaurant' | 'property' | 'car' | 'driver-car'
   if (!id || !kind) return;
 
   try {
@@ -1505,6 +1649,7 @@ document.addEventListener('click', async (e) => {
     const isRestaurant = kind === 'restaurant';
     const isProperty = kind === 'property';
     const isCar = kind === 'car';
+    const isDriverCar = kind === 'driver-car';
     const url = isRestaurant
       ? `${baseUrl}/api/users/${id}`
       : (isProperty
@@ -1543,6 +1688,10 @@ document.addEventListener('click', async (e) => {
       const idx = cars.findIndex(c => String(c.id) === String(id));
       if (idx > -1) cars[idx].is_reviewed = (willSet === 1);
       updateCarCard(document.getElementById(`car-card-${id}`), cars[idx], (willSet === 1));
+    } else if (kind === 'driver-car') {
+      const idx = driverCars.findIndex(c => String(c.id) === String(id));
+      if (idx > -1) driverCars[idx].is_reviewed = (willSet === 1);
+      updateDriverCarCard(document.getElementById(`driver-car-card-${id}`), driverCars[idx], (willSet === 1));
     }
   } catch (err) {
     console.error('[CONTROL] Toggle favorite error:', err);
@@ -1823,6 +1972,12 @@ function openEntityDetails(kind, id) {
     titleEl.textContent = 'تفاصيل السيارة';
     iconEl.className = 'bi bi-truck title-icon';
     bodyEl.innerHTML = renderAccountStyleDetailsForCar(c);
+  } else if (kind === 'driver-car') {
+    const c = driverCars.find(x => String(x.id) === String(id));
+    if (!c) return alert('لم يتم العثور على السيارة.');
+    titleEl.textContent = 'تفاصيل سيارة التوصيل';
+    iconEl.className = 'bi bi-truck title-icon';
+    bodyEl.innerHTML = renderAccountStyleDetailsForCar(c);
   }
 
   new bootstrap.Modal(modalEl).show();
@@ -1997,6 +2152,7 @@ window.addEventListener('beforeunload', () => {
   abortIfInflight('restaurants');
   abortIfInflight('properties');
   abortIfInflight('cars');
+  abortIfInflight('driverCars');
 });
 </script>
 
