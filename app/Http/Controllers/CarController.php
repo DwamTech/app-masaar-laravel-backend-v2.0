@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Car;
 use App\Models\CarRental;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CarController extends Controller
 {
@@ -40,6 +42,25 @@ class CarController extends Controller
             'car_plate_number' => 'required|string',
         ]);
 
+        // خزن الصور القادمة كـ Base64 إلى ملفات فعلية، وأرجع روابط عامة
+        $imageFolder = 'uploads/images/cars';
+        $validated['license_front_image'] = $this->storeImageString($validated['license_front_image'], $imageFolder);
+        $validated['license_back_image']  = $this->storeImageString($validated['license_back_image'],  $imageFolder);
+        $validated['car_license_front']   = $this->storeImageString($validated['car_license_front'],   $imageFolder);
+        $validated['car_license_back']    = $this->storeImageString($validated['car_license_back'],    $imageFolder);
+        $validated['car_image_front']     = $this->storeImageString($validated['car_image_front'],     $imageFolder);
+        $validated['car_image_back']      = $this->storeImageString($validated['car_image_back'],      $imageFolder);
+
+        // تحقق من نجاح تحويل الصور، في حالة فشل أي صورة نرجع خطأ واضح
+        foreach (['license_front_image','license_back_image','car_license_front','car_license_back','car_image_front','car_image_back'] as $key) {
+            if (!$validated[$key]) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'صيغة الصورة غير صحيحة أو فشلت عملية التحويل: ' . $key,
+                ], 422);
+            }
+        }
+
         $payload = array_merge($validated, [
             'car_rental_id' => $carRental->id,
             'owner_type' => 'driver',
@@ -53,6 +74,39 @@ class CarController extends Controller
             'message' => 'تم تقديم العربية للمراجعة بنجاح. في انتظار اعتماد الإدارة.',
             'car' => $car
         ], 201);
+    }
+
+    /**
+     * حفظ صورة قادمة كسلسلة نصية (رابط أو data URI Base64) وإرجاع رابط عام
+     */
+    private function storeImageString(?string $value, string $folder): ?string
+    {
+        if (!$value) return null;
+
+        // لو القيمة بالفعل رابط http(s) أو مسار /storage فارجعها كما هي
+        if (preg_match('#^https?://#', $value) || str_starts_with($value, '/storage/')) {
+            return $value;
+        }
+
+        // لو القيمة بصيغة data URI
+        if (preg_match('#^data:image/(png|jpg|jpeg|gif|webp);base64,#i', $value, $m)) {
+            $ext = strtolower($m[1]);
+            $base64 = substr($value, strpos($value, ',') + 1);
+            $data = base64_decode($base64);
+            if ($data === false) return null;
+
+            if (!Storage::disk('public')->exists($folder)) {
+                Storage::disk('public')->makeDirectory($folder);
+            }
+
+            $filename = Str::uuid()->toString() . '.' . ($ext === 'jpg' ? 'jpg' : ($ext === 'jpeg' ? 'jpeg' : ($ext === 'png' ? 'png' : $ext)));
+            $path = $folder . '/' . $filename;
+            Storage::disk('public')->put($path, $data);
+            return Storage::url($path);
+        }
+
+        // أي نص آخر نعتبره مسار نسبي ونحاول إرجاعه كما هو
+        return $value;
     }
 
     // [أدمن] عرض جميع العربيات مع العلاقات المطلوبة
