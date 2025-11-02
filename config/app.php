@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Use Cairo timezone by default; can be overridden via APP_TIMEZONE
+    'timezone' => env('APP_TIMEZONE', 'Africa/Cairo'),
 
     /*
     |--------------------------------------------------------------------------
