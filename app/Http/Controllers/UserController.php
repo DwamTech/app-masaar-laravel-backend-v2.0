@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\CarRental;
+use App\Models\DriverDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -452,6 +454,138 @@ class UserController extends Controller
                 'current_address' => $user->current_address,
                 'location_updated_at' => $user->location_updated_at,
                 'location_sharing_enabled' => $user->location_sharing_enabled
+            ]
+        ]);
+    }
+
+    /**
+     * تحديث بروفايل مقدم خدمة السائق
+     * الحقول المدعومة:
+     * - صورة السائق: profile_image (مسار الصورة بعد الرفع)
+     * - الاسم كامل: name
+     * - الهاتف: phone
+     * - المحافظة: governorate
+     * - طريقة الدفع: payment_methods[]
+     * - نوع التأجير: rental_type
+     * - معلومات التسعير: cost_per_km, daily_driver_cost, max_km_per_day
+     */
+    public function updateDriverProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->user_type !== 'driver') {
+            return response()->json([
+                'status' => false,
+                'message' => 'هذه الخدمة متاحة للسائقين فقط'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'phone' => 'sometimes|required|string|max:20|unique:users,phone,' . $user->id,
+            'governorate' => 'nullable|string|max:100',
+            'city' => 'nullable|string|max:100',
+            'profile_image' => 'nullable|string|max:500',
+            'payment_methods' => 'nullable|array',
+            'payment_methods.*' => 'string|max:50',
+            'rental_type' => 'nullable|string|max:50',
+            'rental_options' => 'nullable|array',
+            'rental_options.*' => 'string|max:50',
+            'cost_per_km' => 'nullable|numeric|min:0',
+            'daily_driver_cost' => 'nullable|numeric|min:0',
+            'max_km_per_day' => 'nullable|integer|min:1',
+        ]);
+
+        // تحديث بيانات المستخدم الأساسية
+        $userUpdates = [];
+        foreach (['name','phone','governorate','city'] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $userUpdates[$field] = $validated[$field];
+            }
+        }
+
+        if (!empty($userUpdates)) {
+            $user->update($userUpdates);
+        }
+
+        // التأكد من وجود سجل car_rental للسائق
+        $carRental = $user->carRental;
+        if (!$carRental) {
+            $carRental = CarRental::create([
+                'user_id' => $user->id,
+                'rental_type' => $validated['rental_type'] ?? null,
+            ]);
+        } elseif (isset($validated['rental_type'])) {
+            $carRental->update(['rental_type' => $validated['rental_type']]);
+        }
+
+        // تحديث تفاصيل السائق DriverDetail
+        $driverDetail = $carRental->driverDetail;
+        if (!$driverDetail) {
+            $driverDetail = DriverDetail::create([
+                'car_rental_id' => $carRental->id,
+            ]);
+        }
+
+        $detailUpdates = [];
+        if (isset($validated['profile_image'])) {
+            $detailUpdates['profile_image'] = $validated['profile_image'];
+            // مزامنة صورة الحساب الأساسية أيضاً إذا كانت متاحة
+            $user->avatar = $validated['profile_image'];
+            // لو عندك عمود profile_image على users يمكن مزامنته كذلك
+            if (property_exists($user, 'profile_image')) {
+                $user->profile_image = $validated['profile_image'];
+            }
+            $user->save();
+        }
+        if (isset($validated['payment_methods'])) {
+            $detailUpdates['payment_methods'] = $validated['payment_methods'];
+        }
+        if (isset($validated['rental_options'])) {
+            $detailUpdates['rental_options'] = $validated['rental_options'];
+        }
+        if (array_key_exists('cost_per_km', $validated)) {
+            $detailUpdates['cost_per_km'] = $validated['cost_per_km'];
+        }
+        if (array_key_exists('daily_driver_cost', $validated)) {
+            $detailUpdates['daily_driver_cost'] = $validated['daily_driver_cost'];
+        }
+        if (array_key_exists('max_km_per_day', $validated)) {
+            $detailUpdates['max_km_per_day'] = $validated['max_km_per_day'];
+        }
+
+        if (!empty($detailUpdates)) {
+            $driverDetail->update($detailUpdates);
+        }
+
+        // إعادة تحميل العلاقات لضمان إرجاع بيانات محدثة
+        $user->load(['carRental.driverDetail']);
+
+        return response()->json([
+            'status' => true,
+            'success' => true,
+            'message' => 'تم تحديث بروفايل السائق بنجاح',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'phone' => $user->phone,
+                    'governorate' => $user->governorate,
+                    'city' => $user->city,
+                    'avatar' => $user->avatar ?? null,
+                ],
+                'car_rental' => [
+                    'id' => $carRental->id,
+                    'rental_type' => $carRental->rental_type,
+                ],
+                'driver_detail' => [
+                    'profile_image' => $driverDetail->profile_image,
+                    'payment_methods' => $driverDetail->payment_methods,
+                    'rental_options' => $driverDetail->rental_options,
+                    'cost_per_km' => $driverDetail->cost_per_km,
+                    'daily_driver_cost' => $driverDetail->daily_driver_cost,
+                    'max_km_per_day' => $driverDetail->max_km_per_day,
+                ],
             ]
         ]);
     }
