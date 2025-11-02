@@ -211,6 +211,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/my-offers', [DeliveryRequestController::class, 'myOffers']); // Get driver's offers
             Route::get('/completed-requests', [DeliveryRequestController::class, 'completedRequests']); // Get driver's completed requests
             Route::get('/driver/stats', [DeliveryRequestController::class, 'driverStats']); // Driver statistics overview
+            Route::post('/requests/{deliveryRequestId}/offers/{offerId}/withdraw', [DeliveryRequestController::class, 'withdrawOffer']); // Withdraw an offer by driver
         });
         
         // Offer Management

@@ -249,6 +249,61 @@ class DeliveryRequestController extends Controller
     }
 
     /**
+     * سحب عرض مقدم من السائق (قبل قبول العميل)
+     */
+    public function withdrawOffer(Request $request, $deliveryRequestId, $offerId)
+    {
+        $driver = Auth::user();
+        $deliveryRequest = DeliveryRequest::findOrFail($deliveryRequestId);
+        $offer = DeliveryOffer::where('delivery_request_id', $deliveryRequestId)
+            ->findOrFail($offerId);
+
+        // التحقق من ملكية العرض
+        if ($offer->driver_id !== $driver->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'غير مصرح لك بسحب هذا العرض'
+            ], 403);
+        }
+
+        // لا يمكن سحب عرض غير معلق
+        if ($offer->status !== DeliveryOffer::STATUS_PENDING) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا يمكن سحب هذا العرض في حالته الحالية'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $offer->update([
+                'status' => DeliveryOffer::STATUS_WITHDRAWN,
+                'rejection_reason' => 'سحب العرض من السائق'
+            ]);
+
+            DB::commit();
+
+            // إخطار العميل بسحب العرض (اختياري)
+            $this->sendDeliveryNotifications($deliveryRequest, 'offer_withdrawn', $offer);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم سحب العرض بنجاح',
+                'offer' => $offer
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error withdrawing offer: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ أثناء سحب العرض'
+            ], 500);
+        }
+    }
+
+    /**
      * قبول عرض معين
      */
     public function acceptOffer(Request $request, $deliveryRequestId, $offerId)
@@ -270,6 +325,28 @@ class DeliveryRequestController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'لا يمكن قبول عروض على هذا الطلب'
+            ], 400);
+        }
+
+        // يمنع قبول عرض غير معلق أو مسحوب
+        if ($offer->status !== DeliveryOffer::STATUS_PENDING) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا يمكن قبول هذا العرض'
+            ], 400);
+        }
+
+        // صلاحية العرض: افتراضياً 2 دقائق
+        $ttlMinutes = intval(config('delivery.offer_ttl_minutes', 2));
+        if ($offer->created_at && $offer->created_at->diffInMinutes(now()) > $ttlMinutes) {
+            // تعليم العرض كمنتهي الصلاحية/مسحوب لمنع قبوله لاحقاً
+            $offer->update([
+                'status' => DeliveryOffer::STATUS_WITHDRAWN,
+                'rejection_reason' => 'انتهت صلاحية العرض'
+            ]);
+            return response()->json([
+                'status' => false,
+                'message' => 'انتهت صلاحية العرض'
             ], 400);
         }
 
@@ -557,6 +634,12 @@ class DeliveryRequestController extends Controller
                 case 'new_offer':
                     if ($client && $offer) {
                         $this->trySendNotification($client, 'new_offer_received', 'عرض جديد على طلبك', 'تم تقديم عرض جديد على طلبك رقم #' . $deliveryRequest->id);
+                    }
+                    break;
+
+                case 'offer_withdrawn':
+                    if ($client && $offer) {
+                        $this->trySendNotification($client, 'offer_withdrawn', 'تم سحب العرض', 'قام السائق بسحب عرضه على طلبك رقم #' . $deliveryRequest->id);
                     }
                     break;
 
