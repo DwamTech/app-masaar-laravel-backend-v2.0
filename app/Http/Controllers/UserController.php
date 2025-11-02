@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Support\Notifier;
+use App\Http\Resources\DriverProfileResource;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -83,6 +85,7 @@ class UserController extends Controller
             'user_type' => 'sometimes|required|string',
             'is_approved' => 'sometimes|in:0,1',
             'the_best' => 'sometimes|in:0,1',
+            'profile_image' => 'nullable|string|max:2048',
 
         ]);
 
@@ -235,28 +238,9 @@ class UserController extends Controller
             ], 404);
         }
 
-        $primaryCar = $driver->driverCars->first();
-
         return response()->json([
             'status' => true,
-            'driver' => [
-                'id' => $driver->id,
-                'name' => $driver->name,
-                'profile_image' => $driver->profile_image,
-                'rating' => $driver->rating,
-                'rating_count' => $driver->rating_count,
-                'phone' => $driver->phone,
-                'car_info' => $primaryCar ? [
-                    'car_type' => $primaryCar->car_type,
-                    'car_model' => $primaryCar->car_model,
-                    'car_color' => $primaryCar->car_color,
-                    'license_plate' => $primaryCar->car_plate_number,
-                ] : null,
-                'driver_details' => $driver->carRental?->driverDetail ? [
-                    'cost_per_km' => $driver->carRental->driverDetail->cost_per_km,
-                    'payment_methods' => $driver->carRental->driverDetail->payment_methods,
-                ] : null
-            ]
+            'driver' => new DriverProfileResource($driver)
         ]);
     }
 
@@ -485,7 +469,7 @@ class UserController extends Controller
             'phone' => 'sometimes|required|string|max:20|unique:users,phone,' . $user->id,
             'governorate' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:100',
-            'profile_image' => 'nullable|string|max:500',
+            'profile_image' => 'nullable|string|max:2048',
             'payment_methods' => 'nullable|array',
             'payment_methods.*' => 'string|max:50',
             'rental_type' => 'nullable|string|max:50',
@@ -530,12 +514,10 @@ class UserController extends Controller
         $detailUpdates = [];
         if (isset($validated['profile_image'])) {
             $detailUpdates['profile_image'] = $validated['profile_image'];
-            // مزامنة صورة الحساب الأساسية أيضاً إذا كانت متاحة
+            // مزامنة الصورة في جدول المستخدمين
+            $user->profile_image = $validated['profile_image'];
+            // اختياري: مزامنة مع avatar إذا كان يستخدم في واجهات أخرى
             $user->avatar = $validated['profile_image'];
-            // لو عندك عمود profile_image على users يمكن مزامنته كذلك
-            if (property_exists($user, 'profile_image')) {
-                $user->profile_image = $validated['profile_image'];
-            }
             $user->save();
         }
         if (isset($validated['payment_methods'])) {

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 // تم الاحتفاظ بكل الموديلات الخاصة بك
 use App\Models\NormalUser;
@@ -53,6 +54,7 @@ class User extends Authenticatable
         'the_best',
         'google_id',
         'avatar',
+        'profile_image',
         'login_type',
         'email_verification_code',
         'email_verification_expires_at',
@@ -67,6 +69,13 @@ class User extends Authenticatable
         'rating',
         'rating_count',
         'is_available',
+    ];
+
+    /**
+     * Appended attributes on serialization
+     */
+    protected $appends = [
+        'profile_image_url',
     ];
 
     /**
@@ -104,6 +113,17 @@ class User extends Authenticatable
             'location_updated_at' => 'datetime',
             'location_sharing_enabled' => 'boolean',
         ];
+    }
+
+    /**
+     * Accessor: full public URL for profile_image
+     */
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        if (!$this->profile_image) {
+            return null;
+        }
+        return Storage::url($this->profile_image);
     }
 
     // --- العلاقات الخاصة بتفاصيل أنواع الحسابات (تبقى كما هي) ---

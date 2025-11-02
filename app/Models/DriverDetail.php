@@ -18,6 +18,9 @@ class DriverDetail extends Model
     protected $casts = [
         'payment_methods' => 'array',
         'rental_options' => 'array',
+        'cost_per_km' => 'float',
+        'daily_driver_cost' => 'float',
+        'max_km_per_day' => 'integer',
     ];
 
     public function carRental()
