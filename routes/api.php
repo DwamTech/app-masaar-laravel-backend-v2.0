@@ -165,6 +165,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/car-rentals/{carRentalId}/cars', [CarController::class, 'index']);
     Route::get('/cars/models', [CarController::class, 'models']);
     Route::post('/cars', [CarController::class, 'store']);
+    // Driver-specific: create car for current driver (auto owner_type = driver)
+    Route::post('/driver/cars', [CarController::class, 'storeForDriver']);
     Route::put('/cars/{id}', [CarController::class, 'update']);
     Route::delete('/cars/{id}', [CarController::class, 'destroy']);
     Route::get('/cars/{id}', [CarController::class, 'show']);
@@ -412,6 +414,9 @@ Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function
 
     // Cars - Admin Routes
     Route::get('/cars', [CarController::class, 'adminIndex']);
+    // Cars - Admin separated listings
+    Route::get('/driver-cars', [CarController::class, 'adminDriverCars']);
+    Route::get('/office-cars', [CarController::class, 'adminOfficeCars']);
     
     // Security Permits - Admin Routes
     Route::prefix('security-permits')->group(function () {

@@ -935,7 +935,8 @@
     <div class="d-flex gap-2" id="controlTabs">
         <button class="modern-tab-button active" id="tab-restaurants" onclick="switchTab('restaurants')">المطاعم</button>
         <button class="modern-tab-button" id="tab-properties" onclick="switchTab('properties')">العقارات</button>
-        <button class="modern-tab-button" id="tab-cars" onclick="switchTab('cars')">السيارات</button>
+        <button class="modern-tab-button" id="tab-cars" onclick="switchTab('cars')">سيارات مكاتب التأجير</button>
+        <button class="modern-tab-button" id="tab-driverCars" onclick="switchTab('driverCars')">سيارات خدمة التوصيل</button>
     </div>
 </div>
 <div id="controlTabContent" class="mt-4"></div>
@@ -979,6 +980,7 @@ let currentTab = 'restaurants';
 let restaurants = [];
 let properties = [];
 let cars = [];
+let driverCars = [];
 
 let pollTimer = null;
 const POLL_MS = 8000;
@@ -988,6 +990,7 @@ let inflight = {
   restaurants: null,
   properties: null,
   cars: null,
+  driverCars: null,
 };
 
 // تأكيد وجود توكن
@@ -1022,6 +1025,8 @@ function renderCurrentTab(auto = false) {
     fetchProperties(auto);
   } else if (currentTab === 'cars') {
     fetchCars(auto);
+  } else if (currentTab === 'driverCars') {
+    fetchDriverCars(auto);
   }
 }
 

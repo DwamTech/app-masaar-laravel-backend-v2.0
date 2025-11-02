@@ -8,6 +8,53 @@ use Illuminate\Http\Request;
 
 class CarController extends Controller
 {
+    // [سائق] إضافة عربية جديدة مرتبطة بالسائق الحالي تلقائياً
+    public function storeForDriver(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || $user->user_type !== 'driver') {
+            return response()->json([
+                'status' => false,
+                'message' => 'هذه العملية متاحة للسائقين فقط'
+            ], 403);
+        }
+
+        // الحصول على سجل car_rental الخاص بالسائق أو إنشاؤه إن لم يوجد
+        $carRental = $user->carRental;
+        if (!$carRental) {
+            $carRental = $user->carRental()->create(['rental_type' => 'driver']);
+            $carRental->driverDetail()->create([]);
+        }
+
+        $validated = $request->validate([
+            'license_front_image' => 'required|string',
+            'license_back_image' => 'required|string',
+            'car_license_front' => 'required|string',
+            'car_license_back' => 'required|string',
+            'car_image_front' => 'required|string',
+            'car_image_back' => 'required|string',
+            'car_type' => 'required|string',
+            'car_model' => 'required|string',
+            'car_color' => 'nullable|string',
+            'car_plate_number' => 'required|string',
+        ]);
+
+        $payload = array_merge($validated, [
+            'car_rental_id' => $carRental->id,
+            'owner_type' => 'driver',
+            'is_reviewed' => false,
+        ]);
+
+        $car = Car::create($payload);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تقديم العربية للمراجعة بنجاح. في انتظار اعتماد الإدارة.',
+            'car' => $car
+        ], 201);
+    }
+
     // [أدمن] عرض جميع العربيات مع العلاقات المطلوبة
     public function adminIndex(Request $request)
     {
@@ -15,6 +62,10 @@ class CarController extends Controller
 
         if ($request->has('is_reviewed')) {
             $query->where('is_reviewed', $request->boolean('is_reviewed'));
+        }
+
+        if ($request->has('owner_type')) {
+            $query->where('owner_type', $request->input('owner_type'));
         }
 
         $cars = $query->orderBy('id', 'desc')->get();
@@ -138,6 +189,44 @@ class CarController extends Controller
             ->with(['carRental.officeDetail', 'carRental.driverDetail'])
             ->orderBy('id', 'desc')
             ->get();
+
+        return response()->json([
+            'status' => true,
+            'cars' => $cars,
+            'count' => $cars->count(),
+        ]);
+    }
+
+    // [أدمن] عرض عربيات السائقين فقط
+    public function adminDriverCars(Request $request)
+    {
+        $query = Car::where('owner_type', 'driver')
+            ->with(['carRental.user', 'carRental.driverDetail']);
+
+        if ($request->has('is_reviewed')) {
+            $query->where('is_reviewed', $request->boolean('is_reviewed'));
+        }
+
+        $cars = $query->orderBy('id', 'desc')->get();
+
+        return response()->json([
+            'status' => true,
+            'cars' => $cars,
+            'count' => $cars->count(),
+        ]);
+    }
+
+    // [أدمن] عرض عربيات مكاتب التأجير فقط
+    public function adminOfficeCars(Request $request)
+    {
+        $query = Car::where('owner_type', 'office')
+            ->with(['carRental.user', 'carRental.officeDetail']);
+
+        if ($request->has('is_reviewed')) {
+            $query->where('is_reviewed', $request->boolean('is_reviewed'));
+        }
+
+        $cars = $query->orderBy('id', 'desc')->get();
 
         return response()->json([
             'status' => true,
