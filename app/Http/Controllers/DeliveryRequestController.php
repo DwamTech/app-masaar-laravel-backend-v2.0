@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Support\Notifier;
+use App\Events\DeliveryRequestAccepted;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -388,13 +389,16 @@ class DeliveryRequestController extends Controller
 
             DB::commit();
 
+            // بث حدث فوري للسائق المقبول
+            event(new DeliveryRequestAccepted($deliveryRequest->fresh(['driver', 'destinations'])));
+
             // إرسال الإشعارات
             $this->sendDeliveryNotifications($deliveryRequest, 'offer_accepted', $offer);
 
             return response()->json([
                 'status' => true,
                 'message' => 'تم قبول العرض بنجاح',
-                'delivery_request' => $deliveryRequest->load(['driver', 'destinations'])
+                'delivery_request' => $deliveryRequest->fresh(['driver', 'destinations'])
             ]);
 
         } catch (\Exception $e) {
