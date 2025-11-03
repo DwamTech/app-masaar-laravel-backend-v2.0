@@ -12,6 +12,7 @@
         --border-color: #dee2e6;
         --text-muted: #6c757d;
         --white: #ffffff;
+        --header-gradient: linear-gradient(180deg, rgba(13,110,253,0.12), rgba(13,110,253,0));
     }
     .notifications-container {
         max-width: 900px;
@@ -22,11 +23,9 @@
         overflow: hidden;
     }
     .notifications-header {
-        padding: 1.25rem 1.5rem;
+        padding: 1.25rem 1.5rem 0.75rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        background: var(--header-gradient);
     }
     .notifications-header h4 {
         margin: 0;
@@ -49,10 +48,54 @@
     #permission-button i {
         margin-left: 0.5rem;
     }
-    .notifications-body {
-        max-height: 70vh;
-        overflow-y: auto;
+    .notifications-toolbar {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-top: .75rem;
+        flex-wrap: wrap;
     }
+    .search-input {
+        flex: 1;
+        min-width: 240px;
+        padding: .5rem .75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--white);
+    }
+    .filter-pills {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+    .filter-pill {
+        padding: .4rem .75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 999px;
+        background: var(--light-gray);
+        color: #343a40;
+        cursor: pointer;
+        user-select: none;
+        font-size: .9rem;
+    }
+    .filter-pill.active {
+        background: rgba(13,110,253,.12);
+        border-color: var(--primary-color);
+        color: #0b5ed7;
+    }
+    .mark-all-button {
+        margin-right: .5rem;
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: #343a40;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .mark-all-button:hover { background-color: var(--light-gray); }
+    .notifications-body { max-height: 70vh; overflow-y: auto; }
     .notification-list {
         list-style: none;
         padding: 0;
@@ -108,11 +151,29 @@
 {{-- ========== قسم HTML الخاص بالصفحة ========== --}}
 <div class="notifications-container">
     <div class="notifications-header">
-        <h4>الإشعارات</h4>
-        <button id="permission-button" style="display: none;">
-            <i class="bi bi-bell-slash"></i>
-            تفعيل إشعارات المتصفح
-        </button>
+        <div class="d-flex align-items-center justify-content-between">
+            <h4 class="mb-0">الإشعارات</h4>
+            <div class="d-flex align-items-center gap-2">
+                <button id="mark-all-read" class="mark-all-button" type="button">
+                    <i class="bi bi-check2-all"></i>
+                    تعليم الكل كمقروء
+                </button>
+                <button id="permission-button" style="display: none;">
+                    <i class="bi bi-bell-slash"></i>
+                    تفعيل إشعارات المتصفح
+                </button>
+            </div>
+        </div>
+        <div class="notifications-toolbar">
+            <input id="notifSearch" type="text" class="search-input" placeholder="ابحث بالعنوان أو المحتوى" />
+            <div id="notifFilters" class="filter-pills">
+                <span class="filter-pill active" data-type="all">الكل</span>
+                <span class="filter-pill" data-type="order">أوامر</span>
+                <span class="filter-pill" data-type="appointment">مواعيد</span>
+                <span class="filter-pill" data-type="chat">محادثة</span>
+                <span class="filter-pill" data-type="other">أخرى</span>
+            </div>
+        </div>
     </div>
     <div class="notifications-body">
         <ul class="notification-list" id="notifications-list">
@@ -167,6 +228,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const emptyState = document.getElementById('empty-state');
     const permissionBtn = document.getElementById('permission-button');
     const notificationSound = document.getElementById('notificationSound');
+    const searchInput = document.getElementById('notifSearch');
+    const filtersWrap = document.getElementById('notifFilters');
+    const markAllBtn = document.getElementById('mark-all-read');
     
     // --- [3] منطق إشعارات المتصفح ---
     function handleBrowserNotifications() {
@@ -222,17 +286,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if (notification.type.includes('order')) iconClass = 'bi-cart-check-fill';
         if (notification.type.includes('appointment')) iconClass = 'bi-calendar2-check-fill';
         if (notification.type.includes('chat')) iconClass = 'bi-chat-dots-fill';
-        item.innerHTML = `<div class="notification-icon"><i class="bi ${iconClass}"></i></div><div class="notification-content"><p><strong>${notification.title}</strong><br>${notification.message}</p><span>${timeAgo(notification.created_at)}</span></div>`;
-    
+        const unreadDot = (!notification.is_read) ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0d6efd;margin-right:.5rem;"></span>' : '';
+        item.innerHTML = `
+            <div class="notification-icon"><i class="bi ${iconClass}"></i></div>
+            <div class="notification-content">
+                <p><strong>${notification.title}</strong> ${unreadDot}<br>${notification.message}</p>
+                <span>${timeAgo(notification.created_at)}</span>
+            </div>`;
+
         // دعم الرابط: إذا توفر notification.link نخزنه على العنصر
         if (notification.link) {
             item.dataset.link = notification.link;
         }
-    
+
         return item;
     }
     
     // --- [5] دوال الاتصال بالـ API ---
+    let allNotifications = [];
+    let activeType = 'all';
+    let searchQuery = '';
+
     async function fetchNotifications() {
         console.log("⏳ [API] Attempting to fetch notifications from '/api/notifications'...");
         try {
@@ -251,15 +325,10 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log("📦 [API] Successfully parsed JSON response:", result);
 
             loadingState.style.display = 'none';
-            
-            if (result.notifications && Array.isArray(result.notifications) && result.notifications.length > 0) {
-                console.log(`📊 [Render] Found ${result.notifications.length} notifications. Rendering...`);
-                list.innerHTML = '';
-                result.notifications.forEach(notification => list.appendChild(createNotificationElement(notification)));
-            } else {
-                console.log("📪 [Render] No notifications found or result.notifications is not an array. Displaying empty state.");
-                emptyState.style.display = 'block';
-            }
+
+            allNotifications = (result.notifications && Array.isArray(result.notifications)) ? result.notifications : [];
+            applyFilters();
+            if (allNotifications.length === 0) { emptyState.style.display = 'block'; }
         } catch (error) {
             console.error("💥 [Catch] An exception occurred during fetchNotifications:", error);
             loadingState.style.display = 'block';
@@ -314,6 +383,55 @@ document.addEventListener('DOMContentLoaded', function () {
             const notificationId = item.dataset.id;
             item.classList.remove('unread');
             markAsReadAPI(notificationId);
+            const idx = allNotifications.findIndex(n => String(n.id) === String(notificationId));
+            if (idx >= 0) allNotifications[idx].is_read = true;
+        }
+    });
+
+    // البحث والفلاتر
+    let searchDebounce;
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => { searchQuery = e.target.value; applyFilters(); }, 200);
+    });
+    filtersWrap.addEventListener('click', (e) => {
+        const pill = e.target.closest('.filter-pill');
+        if (!pill) return;
+        [...filtersWrap.children].forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activeType = pill.dataset.type || 'all';
+        applyFilters();
+    });
+
+    function applyFilters() {
+        const q = (searchQuery || '').trim().toLowerCase();
+        const filtered = allNotifications.filter(n => {
+            const t = (n.type || '').toLowerCase();
+            const typeOk = activeType === 'all' ? true : (
+                (activeType === 'order' && t.includes('order')) ||
+                (activeType === 'appointment' && t.includes('appointment')) ||
+                (activeType === 'chat' && (t.includes('chat') || t.includes('message')))
+            ) || (activeType === 'other' && !(t.includes('order') || t.includes('appointment') || t.includes('chat') || t.includes('message')));
+            if (!typeOk) return false;
+            if (!q) return true;
+            const text = `${(n.title||'').toLowerCase()} ${(n.message||'').toLowerCase()}`;
+            return text.includes(q);
+        });
+        list.innerHTML = '';
+        filtered.forEach(n => list.appendChild(createNotificationElement(n)));
+        emptyState.style.display = filtered.length ? 'none' : 'block';
+    }
+
+    // تعليم الكل كمقروء
+    markAllBtn.addEventListener('click', async () => {
+        const unread = allNotifications.filter(n => !n.is_read);
+        if (unread.length === 0) return;
+        try {
+            await Promise.all(unread.map(n => markAsReadAPI(n.id)));
+            unread.forEach(n => n.is_read = true);
+            applyFilters();
+        } catch (err) {
+            console.error('Failed to mark all as read:', err);
         }
     });
     
@@ -328,8 +446,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     notificationSound.play().catch(e => console.warn("Could not play sound:", e));
                     showDesktopNotification(event.notification.title, event.notification.message);
                     emptyState.style.display = 'none';
-                    const newNotificationElement = createNotificationElement(event.notification);
-                    list.prepend(newNotificationElement);
+                    allNotifications.unshift(event.notification);
+                    applyFilters();
                 });
             console.log(`✅ [Echo] Successfully listening for notifications on channel: ${channelName}`);
         } catch (e) {
