@@ -363,6 +363,7 @@
                 <li><button class="modern-tab active" onclick="changeSettingsTab('banners')">✨ Banners</button></li>
                 <!-- ====== New Tab Added ====== -->
                 <li><button class="modern-tab" onclick="changeSettingsTab('restaurantBanners')">🍔 بنرات المطاعم</button></li>
+                <li><button class="modern-tab" onclick="changeSettingsTab('deliveryPerKm')">🚚 سعر الكيلو للتوصيل</button></li>
                 <li><button class="modern-tab" onclick="changeSettingsTab('aboutUs')">📱 عن التطبيق</button></li>
                 <li><button class="modern-tab" onclick="changeSettingsTab('termsAndConditions')">📋 الشروط والأحكام</button></li>
                 <li><button class="modern-tab" onclick="changeSettingsTab('faqs')">❓ الأسئلة الشائعة</button></li>
@@ -403,12 +404,25 @@ async function fetchSettings() {
     
     // Fetch restaurant banners
     const restaurantBannersPromise = fetch('/api/restaurant-banners', { headers }).then(res => res.json());
-
-    const [settingsJson, bannersJson] = await Promise.all([settingsPromise, restaurantBannersPromise]);
+    
+    // Fetch price per km (global default) via dedicated endpoint
+    const pricePerKmPromise = fetch('/api/settings/price-per-km', { headers })
+        .then(res => res.ok ? res.json() : null)
+        .catch(() => null);
+    const [settingsJson, bannersJson, priceJson] = await Promise.all([settingsPromise, restaurantBannersPromise, pricePerKmPromise]);
     
     settingsData = settingsJson.settings || {};
     // Assuming the API returns an object with a "ResturantBanners" key which is an array of objects {id, image_url}
     restaurantBannersData = bannersJson.ResturantBanners || []; 
+    
+    // Normalize price per km value from dedicated endpoint if available
+    if (priceJson) {
+        // Support both { value } and { setting: { key, value } }
+        const ppm = (priceJson.value !== undefined) ? priceJson.value : (priceJson.setting && priceJson.setting.value);
+        if (ppm !== undefined && ppm !== null) {
+            settingsData.price_per_km = ppm;
+        }
+    }
     
     renderSettingsContent();
 }
@@ -420,6 +434,8 @@ function renderSettingsContent() {
         html = renderBanners();
     } else if (currentSettingsTab === 'restaurantBanners') {
         html = renderRestaurantBanners();
+    } else if (currentSettingsTab === 'deliveryPerKm') {
+        html = renderDeliveryPerKm();
     } else if (currentSettingsTab === 'aboutUs') {
         html = renderAboutUs();
     } else if (currentSettingsTab === 'termsAndConditions') {
@@ -613,6 +629,67 @@ async function deleteRestaurantBanner(id) {
     }
 }
 // ====== /End of Restaurant Banners Section ====== //
+
+
+// ====== Delivery Price Per Km (Global Default) ====== //
+function renderDeliveryPerKm() {
+    // Current value may be string from /api/settings, ensure numeric display
+    let current = settingsData.price_per_km;
+    if (current === undefined || current === null) current = '';
+    // If value is string, keep as-is for input value
+    const html = `
+    <div class="modern-form">
+        <h4>سعر الكيلومتر للتوصيل (افتراضي)</h4>
+        <form id="deliveryPerKmForm" onsubmit="return saveDeliveryPerKm()">
+            <div class="modern-input-group">
+                <label class="form-label">السعر لكل كيلومتر</label>
+                <input type="number" step="0.01" min="0" class="modern-input" id="deliveryPerKmInput" placeholder="مثال: 1.50" value="${current}">
+            </div>
+            <button type="submit" class="modern-btn modern-btn-success modern-btn-full">💾 حفظ السعر الافتراضي</button>
+        </form>
+        <div class="modern-loading" id="deliveryPerKmLoading" style="display:none;">جاري الحفظ...</div>
+    </div>`;
+    return html;
+}
+
+async function saveDeliveryPerKm() {
+    event.preventDefault();
+    const token = localStorage.getItem('token');
+    const input = document.getElementById('deliveryPerKmInput');
+    const loading = document.getElementById('deliveryPerKmLoading');
+    if (!input) return false;
+    const valueStr = (input.value || '').trim();
+    const valueNum = parseFloat(valueStr);
+    if (isNaN(valueNum) || valueNum < 0) {
+        alert('يرجى إدخال قيمة رقمية صحيحة (≥ 0).');
+        return false;
+    }
+    loading.style.display = 'block';
+    try {
+        const res = await fetch('/api/settings/price-per-km', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ value: valueNum })
+        });
+        if (res.ok) {
+            alert('تم حفظ السعر الافتراضي لكل كيلومتر بنجاح.');
+            await fetchSettings();
+        } else {
+            const errText = await res.text().catch(() => '');
+            alert('تعذر الحفظ. تأكد من صلاحيات الحساب الإداري.\n' + errText);
+        }
+    } catch (e) {
+        alert('حدث خطأ أثناء الاتصال بالخادم.');
+    } finally {
+        loading.style.display = 'none';
+    }
+    return false;
+}
+// ====== /End Delivery Price Per Km ====== //
 
 
 // ----------- About Us ----------- //

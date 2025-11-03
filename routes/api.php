@@ -57,6 +57,10 @@ Route::post('/register', [RegisteredUserController::class, 'store']);
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/upload', [UploadController::class, 'upload']);
 Route::get('/settings', [AppSettingController::class, 'index']);
+// نقطة واضحة لسعر/كم (نجعلها قبل الـ {key} لتفادي التعارض)
+Route::get('/settings/price-per-km', [AppSettingController::class, 'getPricePerKm']);
+// نقطة جلب إعداد مفرد
+Route::get('/settings/{key}', [AppSettingController::class, 'show']);
 
 // Google OAuth Routes
 Route::post('/auth/google/mobile', [\App\Http\Controllers\Auth\SocialLoginController::class, 'handleGoogleMobileLogin']);
@@ -287,7 +291,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/chats', [AdminChatController::class, 'store']);
 
     // Settings
-    Route::put('/settings/{key}', [AppSettingController::class, 'update']);
+    Route::put('/settings/{key}', [AppSettingController::class, 'update'])->middleware('is_admin');
+    // نقطة واضحة لضبط سعر/كم للأدمن فقط
+    Route::put('/settings/price-per-km', [AppSettingController::class, 'setPricePerKm'])->middleware('is_admin');
 
     // ===== Device Tokens & Push Prefs (Protected) =====
     Route::post('/device-tokens', function (Request $r) {
