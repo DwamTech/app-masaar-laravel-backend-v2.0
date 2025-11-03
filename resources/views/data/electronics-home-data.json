@@ -1,0 +1,38 @@
+{
+  "searchSettings": {
+    "Emirate": [
+      {"value": "dubai", "text": "Dubai", "text_ar": "دبي"},
+      {"value": "abu-dhabi", "text": "Abu Dhabi", "text_ar": "أبوظبي"},
+      {"value": "sharjah", "text": "Sharjah", "text_ar": "الشارقة"},
+      {"value": "ajman", "text": "Ajman", "text_ar": "عجمان"}
+    ],
+    "SectionType": [
+      {"value": "electronics", "text": "Electronics", "text_ar": "إلكترونيات"},
+      {"value": "home-appliances", "text": "Home Appliances", "text_ar": "أجهزة منزلية"},
+      {"value": "furniture", "text": "Furniture", "text_ar": "أثاث"},
+      {"value": "kitchen", "text": "Kitchen & Dining", "text_ar": "مطبخ وطعام"},
+      {"value": "decor", "text": "Home Decor", "text_ar": "ديكور منزلي"}
+    ]
+  },
+  "filterSettings": {
+    "Price": [
+      {"value": "0-500", "text": "0 - 500 AED", "text_ar": "0 - 500 درهم"},
+      {"value": "500-1000", "text": "500 - 1,000 AED", "text_ar": "500 - 1,000 درهم"},
+      {"value": "1000-5000", "text": "1,000 - 5,000 AED", "text_ar": "1,000 - 5,000 درهم"},
+      {"value": "5000-10000", "text": "5,000 - 10,000 AED", "text_ar": "5,000 - 10,000 درهم"},
+      {"value": "10000+", "text": "10,000+ AED", "text_ar": "10,000+ درهم"}
+    ],
+    "Section": [
+      {"value": "electronics", "text": "Electronics", "text_ar": "إلكترونيات"},
+      {"value": "home-appliances", "text": "Home Appliances", "text_ar": "أجهزة منزلية"},
+      {"value": "furniture", "text": "Furniture", "text_ar": "أثاث"}
+    ],
+    "Product": [
+      {"value": "mobile", "text": "Mobile Phones", "text_ar": "هواتف محمولة"},
+      {"value": "laptop", "text": "Laptops", "text_ar": "لابتوبات"},
+      {"value": "tv", "text": "TVs", "text_ar": "تلفزيونات"},
+      {"value": "refrigerator", "text": "Refrigerators", "text_ar": "ثلاجات"},
+      {"value": "washing-machine", "text": "Washing Machines", "text_ar": "غسالات"}
+    ]
+  }
+}

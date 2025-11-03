@@ -1,0 +1,51 @@
+{
+  "searchSettings": {
+    "ChooseMake": [
+      {"value": "toyota", "text": "Toyota", "text_ar": "تويوتا"},
+      {"value": "honda", "text": "Honda", "text_ar": "هوندا"},
+      {"value": "bmw", "text": "BMW", "text_ar": "بي إم دبليو"},
+      {"value": "mercedes", "text": "Mercedes", "text_ar": "مرسيدس"},
+      {"value": "audi", "text": "Audi", "text_ar": "أودي"},
+      {"value": "nissan", "text": "Nissan", "text_ar": "نيسان"},
+      {"value": "lexus", "text": "Lexus", "text_ar": "لكزس"},
+      {"value": "ford", "text": "Ford", "text_ar": "فورد"}
+    ],
+    "ChooseModel": [
+      {"value": "camry", "text": "Camry", "text_ar": "كامري"},
+      {"value": "corolla", "text": "Corolla", "text_ar": "كورولا"},
+      {"value": "civic", "text": "Civic", "text_ar": "سيفيك"},
+      {"value": "accord", "text": "Accord", "text_ar": "أكورد"},
+      {"value": "x5", "text": "X5", "text_ar": "إكس 5"},
+      {"value": "c-class", "text": "C-Class", "text_ar": "سي كلاس"},
+      {"value": "a4", "text": "A4", "text_ar": "أيه 4"},
+      {"value": "altima", "text": "Altima", "text_ar": "التيما"}
+    ]
+  },
+  "filterSettings": {
+    "Year": [
+      {"value": "2024", "text": "2024", "text_ar": "2024"},
+      {"value": "2023", "text": "2023", "text_ar": "2023"},
+      {"value": "2022", "text": "2022", "text_ar": "2022"},
+      {"value": "2021", "text": "2021", "text_ar": "2021"},
+      {"value": "2020", "text": "2020", "text_ar": "2020"},
+      {"value": "2019", "text": "2019", "text_ar": "2019"},
+      {"value": "2018", "text": "2018", "text_ar": "2018"},
+      {"value": "2017", "text": "2017", "text_ar": "2017"}
+    ],
+    "Price": [
+      {"value": "0-100", "text": "0 - 100 AED/day", "text_ar": "0 - 100 درهم/يوم"},
+      {"value": "100-200", "text": "100 - 200 AED/day", "text_ar": "100 - 200 درهم/يوم"},
+      {"value": "200-300", "text": "200 - 300 AED/day", "text_ar": "200 - 300 درهم/يوم"},
+      {"value": "300-500", "text": "300 - 500 AED/day", "text_ar": "300 - 500 درهم/يوم"},
+      {"value": "500+", "text": "500+ AED/day", "text_ar": "500+ درهم/يوم"}
+    ],
+    "KM": [
+      {"value": "0-10000", "text": "0 - 10000 KM", "text_ar": "0 - 10000 كم"},
+      {"value": "10000-20000", "text": "10000 - 20000 KM", "text_ar": "10000 - 20000 كم"},
+      {"value": "20000-30000", "text": "20000 - 30000 KM", "text_ar": "20000 - 30000 كم"},
+      {"value": "30000-40000", "text": "30000 - 40000 KM", "text_ar": "30000 - 40000 كم"},
+      {"value": "40000+", "text": "40000+ KM", "text_ar": "40000+ كم"}
+    ]
+    
+  }
+}

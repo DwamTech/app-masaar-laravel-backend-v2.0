@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -334,8 +335,8 @@
             
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="email" class="form-label">البريد الإلكتروني</label>
-                    <input type="email" id="email" name="email" class="form-control" required autocomplete="email" placeholder="أدخل البريد الإلكتروني">
+                    <label for="email" class="form-label">اسم المستخدم</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" class="form-control" required>
                     <i class="fas fa-envelope input-icon"></i>
                 </div>
                 
@@ -360,45 +361,41 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     e.preventDefault();
     document.getElementById('errorMsg').classList.add('d-none');
 
-    const email = document.getElementById('email').value;
+    const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    console.log("Submitting login form with:", { email, password });
+    console.log("Submitting login form with:", { username, password });
 
     try {
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
-           body: JSON.stringify({ identifier: email, password })
-
+            body: JSON.stringify({ username: username, password: password })
         });
 
         console.log("Raw response:", response);
-
-        // Check HTTP status
         console.log("Response status:", response.status);
 
         const data = await response.json();
-
-        // Log the entire response data
         console.log("Parsed response JSON:", data);
 
         if (data.message === "Login successful." && data.user && data.user.role === 'admin') {
-    console.log("Login successful! Storing token and user data in localStorage...");
-    localStorage.setItem('token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    console.log("Token:", data.access_token);
-    console.log("User:", data.user);
-    console.log("Redirecting to /dashboard...");
-    window.location.href = '/dashboard';
-} else {
-    console.log("Login failed! Message:", data.message);
-    document.getElementById('errorMsg').innerText = data.message || 'Login failed';
-    document.getElementById('errorMsg').classList.remove('d-none');
-}
+            console.log("Login successful! Storing token and user data in localStorage...");
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            console.log("Token:", data.access_token);
+            console.log("User:", data.user);
+            console.log("Redirecting to /dashboard...");
+            window.location.href = '/dashboard';
+        } else {
+            console.log("Login failed! Message:", data.message);
+            document.getElementById('errorMsg').innerText = data.message || 'Login failed';
+            document.getElementById('errorMsg').classList.remove('d-none');
+        }
 
     } catch (error) {
         console.error("Error during login request:", error);
@@ -407,5 +404,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     }
 });
 </script>
+
 </body>
 </html>

@@ -1,0 +1,47 @@
+{
+  "searchSettings": {
+    "Emirate": [
+      {"value": "dubai", "text": "Dubai", "text_ar": "دبي"},
+      {"value": "abu-dhabi", "text": "Abu Dhabi", "text_ar": "أبوظبي"},
+      {"value": "sharjah", "text": "Sharjah", "text_ar": "الشارقة"},
+      {"value": "ajman", "text": "Ajman", "text_ar": "عجمان"}
+    ],
+    "District": [
+      {"value": "downtown", "text": "Downtown", "text_ar": "وسط المدينة"},
+      {"value": "marina", "text": "Marina", "text_ar": "مارينا"},
+      {"value": "jumeirah", "text": "Jumeirah", "text_ar": "جميرا"},
+      {"value": "deira", "text": "Deira", "text_ar": "ديرة"},
+      {"value": "bur-dubai", "text": "Bur Dubai", "text_ar": "بر دبي"}
+    ],
+    "CategoryType": [
+      {"value": "arabic", "text": "Arabic", "text_ar": "عربي"},
+      {"value": "asian", "text": "Asian", "text_ar": "آسيوي"},
+      {"value": "continental", "text": "Continental", "text_ar": "قاري"},
+      {"value": "fast-food", "text": "Fast Food", "text_ar": "وجبات سريعة"},
+      {"value": "fine-dining", "text": "Fine Dining", "text_ar": "فاخر"},
+      {"value": "cafe", "text": "Cafe", "text_ar": "مقهى"},
+      {"value": "buffet", "text": "Buffet", "text_ar": "بوفيه"}
+    ]
+  },
+  "filterSettings": {
+    "District": [
+      {"value": "downtown", "text": "Downtown", "text_ar": "وسط المدينة"},
+      {"value": "marina", "text": "Marina", "text_ar": "مارينا"},
+      {"value": "jumeirah", "text": "Jumeirah", "text_ar": "جميرا"},
+      {"value": "deira", "text": "Deira", "text_ar": "ديرة"}
+    ],
+    "Price": [
+      {"value": "0-50", "text": "0 - 50 AED", "text_ar": "0 - 50 درهم"},
+      {"value": "50-100", "text": "50 - 100 AED", "text_ar": "50 - 100 درهم"},
+      {"value": "100-200", "text": "100 - 200 AED", "text_ar": "100 - 200 درهم"},
+      {"value": "200-500", "text": "200 - 500 AED", "text_ar": "200 - 500 درهم"},
+      {"value": "500+", "text": "500+ AED", "text_ar": "500+ درهم"}
+    ],
+    "Category": [
+      {"value": "arabic", "text": "Arabic", "text_ar": "عربي"},
+      {"value": "asian", "text": "Asian", "text_ar": "آسيوي"},
+      {"value": "continental", "text": "Continental", "text_ar": "قاري"},
+      {"value": "fast-food", "text": "Fast Food", "text_ar": "وجبات سريعة"}
+    ]
+  }
+}

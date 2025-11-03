@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard')</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-orange: #FC8700;
+            --primary-blue: #3490dc;
+            --secondary-blue: #3490dc;
+            --light-blue: #e3f2fd;
             --primary-gray: #6c757d;
             --light-gray: #f8f9fa;
             --dark-gray: #343a40;
@@ -18,26 +21,22 @@
         }
         
         body { 
-            
+            min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         }
         
         .sidebar {
-    width: 280px;
-    background: linear-gradient(180deg, var(--primary-orange) 0%, #e67600 100%);
-    color: var(--white);
-    height: 100vh;
-    box-shadow: var(--shadow-lg);
-    position: fixed; /* تغيير هام: جعل القائمة ثابتة */
-    top: 0;
-    right: 0; /* لأن التصميم عربي */
-    z-index: 1030;
-    transition: transform 0.3s ease-in-out;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-}
+            min-width: 300px;
+            max-width: 300px;
+            background: linear-gradient(145deg, #1e3c72 0%, #2a5298 35%, #3490dc 100%);
+            color: var(--white);
+            min-height: 100vh;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         
         .sidebar::before {
             content: '';
@@ -46,140 +45,743 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.02) 50%, transparent 70%);
             pointer-events: none;
+            animation: subtleGlow 8s ease-in-out infinite alternate;
+        }
+        
+        @keyframes subtleGlow {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
         }
         
         .sidebar .logo-section {
-            padding: 2rem 1.5rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 1rem;
+            padding: 1.5rem 1.2rem;
+            text-align: right;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 1rem 1rem 1.2rem;
             position: relative;
             z-index: 1;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .logo-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
         }
         
         .sidebar .logo {
-            width: 80px;
-            height: 80px;
-            background: var(--white);
-            border-radius: 20px;
-            margin: 0 auto 1rem;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 18px;
+            margin: 0 1rem 0 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--shadow);
-            font-size: 2rem;
-            color: var(--primary-orange);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.12),
+                0 0 0 2px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            font-size: 1.8rem;
+            color: var(--primary-blue);
             font-weight: bold;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .sidebar .logo::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(52, 144, 220, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            opacity: 0;
+        }
+        
+        .sidebar .logo:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.2),
+                0 0 0 3px rgba(255, 255, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+        
+        .sidebar .logo:hover::before {
+            opacity: 1;
+            animation: shimmer 1.5s ease-in-out;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
         
         .logo-image {
-            width: 60px;
-            height: 60px;
+            width: 45px;
+            height: 45px;
             object-fit: contain;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .logo-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: right;
+            direction: ltr;
         }
         
         .sidebar h4 {
-            font-size: 1.5rem;
-            font-weight: 600;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0 0 0.3rem 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.3px;
+            position: relative;
+            line-height: 1.2;
+        }
+        
+        .sidebar .logo-subtitle {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
             margin: 0;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            opacity: 0.9;
         }
         
         .sidebar .nav-pills {
             position: relative;
             z-index: 1;
             
-          
         }
         
         .sidebar .nav-link {
             color: var(--white);
             text-decoration: none;
-            padding: 0.875rem 1.5rem;
-            margin: 0.25rem 1rem;
-            border-radius: 12px;
-            transition: all 0.3s ease;
+            padding: 1rem 1.5rem;
+            margin: 0.4rem 1.2rem;
+            border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             font-weight: 500;
             display: flex;
             align-items: center;
             position: relative;
             overflow: hidden;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            
         }
         
         .sidebar .nav-link i {
             margin-left: 0.75rem;
-            font-size: 1.1rem;
-            width: 20px;
+            font-size: 1.2rem;
+            width: 24px;
             text-align: center;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
         }
         
         .sidebar .nav-link:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
             color: var(--white);
-            transform: translateX(-5px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateX(-8px) scale(1.02);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .sidebar .nav-link:hover i {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
         
         .sidebar .nav-link.active {
-            background: var(--white);
-            color: var(--primary-orange);
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            color: #1e40af;
+            font-weight: 700;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.2),
+                0 0 0 2px rgba(255, 255, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transform: translateX(-5px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .sidebar .nav-link.active i {
+            color: #ffffff;
+            transform: scale(1.1);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
             font-weight: 600;
-            box-shadow: var(--shadow);
+        }
+        
+        /* أنماط القائمة الفرعية المحسنة */
+        .dropdown-nav {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dropdown-nav .dropdown-toggle {
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            user-select: none;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+        }
+        
+        .dropdown-nav .dropdown-toggle:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
+            transform: translateX(-8px) scale(1.02);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .dropdown-arrow {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+            margin-right: auto;
+            margin-left: 0.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+        }
+        
+        .dropdown-nav:hover .dropdown-arrow {
+            opacity: 1;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .submenu-link {
+            padding: 0.85rem 1.4rem !important;
+            margin: 0.3rem 0.8rem !important;
+            font-size: 0.9rem !important;
+            border-radius: 14px !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-left: 3px solid rgba(255, 255, 255, 0.2) !important;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            position: relative !important;
+            overflow: hidden !important;
+            backdrop-filter: blur(8px) !important;
+        }
+        
+        .submenu-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .submenu-link:hover::before {
+            left: 100%;
+        }
+        
+        .submenu-link:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
+            border-left-color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            transform: translateX(-8px) scale(1.03) !important;
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.25) ,
+                0 0 0 1px rgba(255, 255, 255, 0.2) ,
+                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .submenu-link:active {
+            transform: translateX(-3px) scale(0.98) !important;
+        }
+        
+        .submenu-link small {
+            font-size: 0.65rem;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .submenu-link:hover small {
+            opacity: 1;
+        }
+        
+        .dropdown-toggle .bi-chevron-down {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9rem;
+        }
+        
+        .dropdown-toggle[aria-expanded="true"] .bi-chevron-down {
+            transform: rotate(180deg);
+        }
+        
+        .dropdown-toggle[aria-expanded="true"] {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        /* أنماط عنوان إدارة التطبيق */
+        .app-management-header {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 16px !important;
+            margin: 0.4rem 1.2rem !important;
+            padding: 1rem 1.5rem !important;
+            cursor: default !important;
+            backdrop-filter: blur(12px) !important;
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+            position: relative !important;
+            overflow: hidden !important;
+        }
+        
+        .app-management-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+            animation: headerShimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes headerShimmer {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+        
+        .app-management-header .nav-primary {
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            color: #ffffff !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+        }
+        
+        .app-management-header .nav-secondary {
+            font-size: 0.8rem !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-style: italic !important;
+        }
+        
+        .app-management-header i {
+            color: #ffffff !important;
+            font-size: 1.3rem !important;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) !important;
+        }
+        
+        /* أنماط القائمة الفرعية القابلة للطي */
+        .app-management-submenu {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.03) 100%);
+            border-radius: 16px;
+            width: 95%;
+            margin: 0.5rem 0.4rem 1rem 0.4rem;
+            padding-top: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* إخفاء القائمة الفرعية عند الإغلاق */
+        .app-management-submenu:not(.show) {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            opacity: 0;
+            transform: translateY(-10px);
+            border-width: 0;
+        }
+        
+        /* إظهار القائمة الفرعية عند الفتح */
+        .app-management-submenu.show {
+            max-height: 800px;
+            opacity: 1;
+            transform: translateY(0);
+            padding-bottom: 0.8rem;
+        }
+        
+        .app-management-submenu .submenu-link {
+            /* padding: 0.7rem 1.2rem !important; */
+            /* margin: 0.25rem 0.4rem !important; */
+            width: 100%;
+            font-size: 0.85rem !important;
+            margin-right: -1.2rem !important; 
+            
+        }
+        
+        /* تأثيرات الحركة للقائمة */
+        .collapsing {
+            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        .collapse.show {
+            animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* أنماط النصوص ثنائية اللغة */
+        .nav-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.3;
+            width: 100%;
+        }
+        
+        .nav-primary {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            margin-bottom: 3px;
+            direction: rtl;
+            text-align: right;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .nav-secondary {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: #ffffff;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+            opacity: 0.85;
+            transition: opacity 0.3s ease;
+            direction: ltr;
+            text-align: left;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .nav-link:hover .nav-primary {
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        
+        .nav-link:hover .nav-secondary {
+            opacity: 1;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-link.active .nav-primary {
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(30, 64, 175, 0.2);
+            font-weight: 700;
+        }
+        
+        .nav-link.active .nav-secondary {
+            color: #ffffff;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+        
+        .submenu-link .nav-primary {
+            /* font-size: 0.9rem; */
+            font-weight: 500;
+        }
+        
+        .submenu-link .nav-secondary {
+            font-size: 0.7rem;
+            font-weight: 300;
+        }
+        
+        .submenu-link:hover .nav-primary {
+            color: #ffffff;
+        }
+        
+        .submenu-link:hover .nav-secondary {
+            color: #ffffff;
+            opacity: 1;
+        }
+        
+        /* تحسين الاستجابة للمس والأجهزة المحمولة */
+        @media (hover: none) {
+            .submenu-link:hover {
+                transform: none !important;
+            }
+            
+            .dropdown-nav .dropdown-toggle:hover {
+                transform: none !important;
+            }
+            
+            .sidebar .nav-link:hover {
+                transform: none !important;
+            }
+            
+            .sidebar .logo:hover {
+                transform: none !important;
+            }
+        }
+        
+        /* تحسينات للأجهزة المحمولة */
+        @media (max-width: 768px) {
+            .sidebar {
+                min-width: 280px;
+                max-width: 280px;
+            }
+            
+            .sidebar .logo-section {
+                padding: 2rem 1rem;
+                margin: 0.8rem 0.8rem 1.2rem;
+            }
+            
+            .sidebar .logo {
+                width: 70px;
+                height: 70px;
+                font-size: 1.8rem;
+            }
+            
+            .sidebar h4 {
+                font-size: 1.4rem;
+            }
+            
+            .sidebar .nav-link {
+                padding: 0.8rem 1.2rem;
+                margin: 0.3rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .submenu-link {
+                padding: 0.7rem 1.2rem !important;
+                margin: 0.25rem 0.6rem !important;
+                font-size: 0.85rem !important;
+            }
+            
+            /* تكبير حجم أسماء الصفحات الفرعية في القوائم المنسدلة على الموبايل */
+            .submenu-link .nav-primary {
+                font-size: 1.05rem !important;
+                line-height: 1.35 !important;
+            }
+            
+            .sidebar .user-info {
+                padding: 1.2rem;
+                margin: 0 1rem 1.5rem;
+            }
+            
+            .logout-btn {
+                padding: 0.8rem 1.2rem;
+                margin: 1rem;
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* تأثيرات إضافية للتفاعل */
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+        
+        .nav-link:hover::after {
+            width: 85%;
+        }
+        
+        .nav-link.active::after {
+            width: 90%;
+            background: linear-gradient(90deg, transparent, var(--primary-blue), transparent);
+            height: 4px;
+        }
+        
+        /* تأثيرات الحركة المتقدمة */
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 30px rgba(255, 255, 255, 0.4);
+            }
+        }
+        
+        .sidebar .nav-link.active {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+        
+        /* تحسين الانتقالات */
+        .sidebar * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* تأثير الضوء المتحرك */
+        .sidebar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            animation: movingLight 10s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes movingLight {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
         
         .sidebar .user-info {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 1rem;
-            margin: 0 1rem 1.5rem;
-            backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+            border-radius: 10px;
+            padding: 0 1.5rem ;
+            margin: 0 1.2rem 0.8rem;
+            direction: ltr;
+            backdrop-filter: blur(15px);
             position: relative;
             z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .user-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.05);
         }
         
         .sidebar .user-info strong {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            display: block;
+            margin-bottom: -1.5rem;
         }
         
         .sidebar .user-info small {
-            opacity: 0.8;
+            opacity: 0.85;
+            font-size: 0.85rem;
+            font-weight: 400;
+            letter-spacing: 0.3px;
         }
         
         .logout-btn {
-            background: rgba(220, 53, 69, 0.9);
-            border: none;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: var(--white);
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            margin: 1rem;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 1.2rem;
             position: relative;
             z-index: 1;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 6px 20px rgba(220, 53, 69, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .logout-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
         }
         
         .logout-btn:hover {
-            background: #dc3545;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+            background: linear-gradient(135deg, #e74c3c 0%, #dc3545 100%);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 
+                0 10px 30px rgba(220, 53, 69, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.3);
         }
         
-       .main-content {
-    min-height: 100vh;
-    margin-right: 280px; /* ترك مساحة للقائمة الجانبية */
-    transition: margin-right 0.3s ease-in-out;
-    width: calc(100% - 280px); /* حساب العرض المتبقي */
-}
+        .logout-btn:hover::before {
+            left: 100%;
+        }
+        
+        .logout-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+        
+        .main-content {
+            background: var(--light-gray);
+            min-height: 100vh;
+            position: relative;
+        }
+        
         .content-wrapper {
             padding: 2rem;
             max-width: 1400px;
@@ -207,31 +809,31 @@
         }
         
         .text-primary {
-            color: var(--primary-orange) !important;
+            color: var(--primary-blue) !important;
         }
         
         .btn-primary {
-            background: var(--primary-orange);
-            border-color: var(--primary-orange);
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
             border-radius: 8px;
             font-weight: 500;
             transition: all 0.3s ease;
         }
         
         .btn-primary:hover {
-            background: #e67600;
-            border-color: #e67600;
+            background: var(--secondary-blue);
+            border-color: var(--secondary-blue);
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(252, 135, 0, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
         }
         .mb-4 {
-            background: linear-gradient(135deg, rgba(252, 135, 0, 0.05) 0%, rgba(248, 249, 250, 0.8) 100%);
+            background: linear-gradient(135deg, rgba(0, 123, 255, 0.05) 0%, rgba(248, 249, 250, 0.8) 100%);
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 4px 16px rgba(252, 135, 0, 0.08);
+            box-shadow: 0 4px 16px rgba(0, 123, 255, 0.08);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(252, 135, 0, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.1);
             position: relative;
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -246,16 +848,16 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(252, 135, 0, 0.08), transparent);
+            background: linear-gradient(90deg, transparent, rgba(0, 123, 255, 0.08), transparent);
             transition: left 0.5s ease;
             
         }
         
         .mb-4:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(252, 135, 0, 0.12);
-            border-color: rgba(252, 135, 0, 0.2);
-            background: linear-gradient(135deg, rgba(252, 135, 0, 0.08) 0%, rgba(248, 249, 250, 0.9) 100%);
+            box-shadow: 0 8px 24px rgba(0, 123, 255, 0.12);
+            border-color: rgba(0, 123, 255, 0.2);
+            background: linear-gradient(135deg, rgba(0, 123, 255, 0.08) 0%, rgba(248, 249, 250, 0.9) 100%);
         }
         
         .mb-4:hover::before {
@@ -278,7 +880,7 @@
         }
         
         .table thead th {
-            background: var(--primary-orange);
+            background: var(--primary-blue);
             color: var(--white);
             border: none;
             font-weight: 600;
@@ -286,7 +888,7 @@
         }
         
         .table tbody tr:hover {
-            background: rgba(252, 135, 0, 0.05);
+            background: rgba(0, 123, 255, 0.05);
         }
         
         /* تحسينات للنماذج */
@@ -297,7 +899,7 @@
         }
         
         .modal-header {
-            background: linear-gradient(135deg, var(--primary-orange), #e67600);
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
             color: var(--white);
             border-radius: 16px 16px 0 0;
             border: none;
@@ -310,32 +912,28 @@
         /* background: #f8f9fa; */
         border-radius: 12px;
         padding: 0.5rem;
-              
     }
     
     .nav-pills .nav-link {
         border-radius: 8px;
-        margin: 0 0.5rem;
+        margin: 0.3rem 0.25rem;
         padding: 0.75rem 1.5rem;
         font-weight: 500;
         color: var(--light-gray);
-        background-color: #F38100;
+        background-color: var(--primary-gray);
         transition: all 0.3s ease;
         border: none;
-      
-      
     }
     
     .nav-pills .nav-link:hover {
-        background: rgba(252, 135, 0, 0.1);
+        background: rgba(0, 123, 255, 0.1);
         color: var(--dark-gray);
     }
     
     .nav-pills .nav-link.active {
-        background: var(--white);
-        color: var(--primary-orange);
-        border: 2px solid var(--primary-orange);
-        box-shadow: 0 2px 8px rgba(252, 135, 0, 0.3);
+        background: var(--primary-blue);
+        color: var(--white);
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
     }
         /* تصميم مربع البحث المتقدم */
         .search-container {
@@ -911,89 +1509,117 @@
              max-height: 60px;
          }
      }
-      
-      
-#sidebarToggle {
-    display: none; /* مخفي على الشاشات الكبيرة */
-}
-.sidebar-overlay {
-    display: none; /* مخفي دائماً إلا عند فتح القائمة */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1029; /* خلف القائمة وأمام المحتوى */
-}
-
-/* شاشات التابلت والموبايل (أقل من 992px) */
-@media (max-width: 991.98px) {
-  
-.quick-actions-grid {
-    display: flex;
-    flex-direction: column; /* ترتيب الأزرار عمودياً */
-    gap: 1rem; /* مسافة 1rem بين كل زر */
-    align-items: center; /* توسيط الأزرار أفقياً داخل الحاوية */
-    width: 100%;
-}
-
-.action-btn {
-    width: 100%; /* جعل الزر يأخذ العرض الكامل للحاوية */
-    max-width: 400px; /* حد أقصى للعرض ليبدو جيداً على الشاشات الأكبر قليلاً */
-    margin: 0; /* إزالة الهوامش والاعتماد على gap */
-    justify-content: center; /* توسيط الأيقونة والنص داخل الزر */
-}
-
-.section-title {
-    font-size: 1.2rem;
-    text-align: center; /* توسيط العنوان على الموبايل */
-}
-.section-title::after {
-    left: 50%; /* تحريك الخط ليكون في المنتصف */
-    transform: translateX(-50%);
-}
-    .sidebar {
-        transform: translateX(100%); /* إخفاء القائمة خارج الشاشة إلى اليمين */
-    }
-
-    .main-content {
-        margin-right: 0; /* المحتوى يأخذ كامل العرض */
-        width: 100%;
-    }
-
-    #sidebarToggle {
-        display: block; /* إظهار زر فتح القائمة */
-        position: fixed;
-        top: 15px;
-        right: 15px;
-        z-index: 1031; /* أعلى z-index ليكون فوق كل شيء */
-        background: var(--white);
-        color: var(--primary-orange);
-        border: 1px solid var(--primary-orange);
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-        box-shadow: var(--shadow-lg);
-    }
-
-    .content-wrapper {
-        padding: 1rem; /* تقليل الحواشي على الشاشات الصغيرة */
-    }
-
-    /* حالة فتح القائمة */
-    body.sidebar-open .sidebar {
-        transform: translateX(0); /* إظهار القائمة بإعادتها لمكانها الأصلي */
-    }
-
-    body.sidebar-open .sidebar-overlay {
-        display: block; /* إظهار الخلفية المعتمة */
-    }
-}
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <style>
+        /* ========= Mobile Header & Sidebar Toggle ========= */
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 75px;
+            background: #294B86;
+            border-bottom: 1px solid #e5e7eb;
+            z-index: 1040;
+            padding: 0 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .mobile-header .mobile-title {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 2rem;
+        }
+        .hamburger-btn {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: #fff;
+        }
+        .hamburger-btn .bar,
+        .hamburger-btn .bar::before,
+        .hamburger-btn .bar::after {
+            content: "";
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: #111827;
+            border-radius: 2px;
+            position: relative;
+        }
+        .hamburger-btn .bar::before { top: -6px; position: absolute; }
+        .hamburger-btn .bar::after { top: 6px; position: absolute; }
+
+        .mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 1030;
+            display: none;
+        }
+        .mobile-overlay.show { display: block; }
+
+        @media (max-width: 992px) {
+            .mobile-header { display: flex; }
+            .main-content { padding-top: 56px; }
+
+            /* Make sidebar offcanvas on mobile */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: 0; /* RTL-friendly: slide from right */
+                height: 100vh;
+                z-index: 1050;
+                transform: translateX(100%);
+                transition: transform 0.25s ease-in-out;
+                width: 80vw;           /* عرض 80% على الموبايل */
+                max-width: 80vw;
+                min-width: 80vw;
+            }
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+
+            /* Ensure content takes full width when sidebar is hidden */
+            .d-flex { flex-direction: column; }
+            .main-content { width: 100%; }
+
+            /* تكبير عناصر القائمة للوضوح على الموبايل */
+            .sidebar .logo {
+                width: 68px;
+                height: 68px;
+                font-size: 2rem;
+            }
+            .sidebar h4 { font-size: 1.6rem; }
+            .sidebar .logo-subtitle { font-size: 1rem; }
+
+            .sidebar .nav-link {
+                padding: 1rem 1.4rem;
+                font-size: 1rem;
+            }
+            .sidebar .nav-link i { font-size: 1.4rem; }
+            .nav-primary { font-size: 2.05rem; }
+            .submenu-link {
+                font-size: 0.95rem !important;
+                padding: 0.9rem 1.4rem !important;
+            }
+            .logout-btn {
+                font-size: 2.05rem;
+            }
+            .sidebar .user-info strong {
+                font-size: 2rem;
+            }
+            
+        }
+    </style>
 
 </head>
 <body>
@@ -1003,113 +1629,283 @@
             window.location.href = '/login';
         }
     </script>
+    <header class="mobile-header" dir="rtl">
+        <button id="mobileMenuButton" class="hamburger-btn" aria-label="فتح القائمة" aria-expanded="false" aria-controls="dashboardSidebar">
+            <span class="bar"></span>
+        </button>
+        <div class="mobile-title">DubaiSale</div>
+    </header>
+    <div id="mobileOverlay" class="mobile-overlay" hidden></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.getElementById('dashboardSidebar');
+            const btn = document.getElementById('mobileMenuButton');
+            const overlay = document.getElementById('mobileOverlay');
+
+            if (!sidebar || !btn || !overlay) return;
+
+            function openSidebar() {
+                sidebar.classList.add('is-open');
+                overlay.classList.add('show');
+                overlay.removeAttribute('hidden');
+                btn.setAttribute('aria-expanded', 'true');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeSidebar() {
+                sidebar.classList.remove('is-open');
+                overlay.classList.remove('show');
+                overlay.setAttribute('hidden', '');
+                btn.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            }
+            btn.addEventListener('click', function () {
+                if (sidebar.classList.contains('is-open')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            });
+            overlay.addEventListener('click', closeSidebar);
+            window.addEventListener('resize', function () {
+                // Reset state when leaving mobile breakpoint
+                if (window.innerWidth > 992) {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
     <div class="d-flex">
-        <nav class="sidebar d-flex flex-column">
+        <nav id="dashboardSidebar" class="sidebar d-flex flex-column">
             <div class="logo-section">
-                <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
-                    <!-- Logo Container -->
-                    <div style="background: white; border-radius: 15px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); flex-shrink: 0;">
-                        <img src="https://msar.app/storage/uploads/images/masar.png" alt="Masar Logo" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">
-                    </div>
-                    
-                    <!-- Text Content -->
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 90px;">
-                        <!-- Main Title -->
-                        <h2 style="margin: 0 0 6px 0; font-size: 2rem; font-weight: 800; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1.2;">مسار</h2>
-                        
-                        <!-- Subtitle -->
-                        <h5 style="margin: 0 0 12px 0; font-size: 1.1rem; font-weight: 500; color: rgba(255,255,255,0.9); line-height: 1.3;">لوحة التحكم</h5>
-                        
-                        <!-- Email -->
-                        <div id="userEmail" style="font-size: 0.9rem; color: rgba(255,255,255,0.8); font-weight: 400; line-height: 1.4;">
-                            <!-- سيتم عرض الإيميل هنا -->
-                        </div>
-                    </div>
+                
+                <div class="logo-text">
+                    <h4>DubaiSale</h4>
+                    <div class="logo-subtitle">لوحة التحكم</div>
+                </div>
+                <div class="logo">
+                    <img src="{{ asset('/storage/uploads/images/dubaisale.jpeg') }}" alt="DubaiSale Logo" class="logo-image">
                 </div>
             </div>
             
-            <ul class="nav nav-pills flex-column mb-auto">
+            <div class="user-info" id="userInfo">
+                <!-- سيتم تعبئة معلومات المستخدم هنا -->
+            </div>
+            
+            <ul class="nav nav-pills flex-column mb-auto" dir="rtl">
                 <li class="nav-item">
                     <a href="/dashboard" class="nav-link">
                         <i class="bi bi-house-door"></i>
-                        الرئيسية
+                        <div class="nav-text">
+                            <span class="nav-primary">الرئيسية</span>
+                        </div>
                     </a>
                 </li>
-               <li class="nav-item">
-                    <a href="/notifications" class="nav-link">
-                        <i class="bi bi-house-door"></i>
-                        إدارة الأشعارات
-                  
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/accounts" class="nav-link">
-                        <i class="bi bi-people"></i>
-                        إدارة الحسابات
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/requests" class="nav-link">
-                        <i class="bi bi-clipboard-check"></i>
-                        إدارة الطلبات
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/securityPermits" class="nav-link">
-                        <i class="bi bi-shield-check"></i>
-                        التصاريح الأمنية
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('chat') }}" class="nav-link">
-                        <i class="bi bi-chat-dots-fill"></i>
-                        محادثات العملاء
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/appController" class="nav-link">
+                
+                
+                
+                <li class="nav-item dropdown-nav">
+                    <div class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#appManagementSubmenu" aria-expanded="false" aria-controls="appManagementSubmenu" role="button">
                         <i class="bi bi-gear"></i>
-                        إدارة التطبيق
+                        <div class="nav-text">
+                            <span class="nav-primary">إدارة التطبيق</span>
+                        </div>
+                        <i class="bi bi-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <div class="collapse app-management-submenu" id="appManagementSubmenu">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a href="/search-filter-settings" class="nav-link submenu-link">
+                                    <i class="bi bi-search"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">البحث والفلتر</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/section-banners" class="nav-link submenu-link">
+                                    <i class="bi bi-image"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">تعيين لافتات كل قسم</span>
+                                    </div>
+                                </a>
+                            </li>
+                            
+                            <li class="nav-item">
+                                <a href="/send-notification" class="nav-link submenu-link">
+                                    <i class="bi bi-bell"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">إرسال إشعار</span>
+                                    </div>
+                                </a>
+                            </li>
+                            
+                            {{-- <li class="nav-item">
+                                <a href="/blocked-users" class="nav-link submenu-link">
+                                    <i class="bi bi-person-x"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">قائمة الحظر</span>
+                                    </div>
+                                </a>
+                            </li> --}}
+                            
+                            {{-- <li class="nav-item">
+                    <a href="/support-messages" class="nav-link submenu-link">
+                        <i class="bi bi-headset"></i>
+                        <div class="nav-text">
+                            <span class="nav-primary">رسائل الدعم الفني</span>
+                        </div>
                     </a>
+                </li> --}}
+                            
+                            <li class="nav-item">
+                                <a href="/ads-approval" class="nav-link submenu-link">
+                                    <i class="bi bi-check-circle"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">الموافقة على الإعلانات</span>
+                                    </div>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                    </div>
                 </li>
-                <li class="nav-item">
-                    <a href="/AppSettings" class="nav-link">
-                        <i class="bi bi-info-circle"></i>
-                        معلومات التطبيق
-                    </a>
+                {{-- <li class="nav-item">
+                                <a href="/system-variables" class="nav-link">
+                                    <i class="bi bi-sliders"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">متغيرات النظام</span>
+                                    </div>
+                                </a>
+                            </li> --}}
+                
+                <li class="nav-item dropdown-nav">
+                    <div class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#sectionsManagementSubmenu" aria-expanded="false" aria-controls="sectionsManagementSubmenu" role="button">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        <div class="nav-text">
+                            <span class="nav-primary">إدارة الأقسام</span>
+                        </div>
+                        <i class="bi bi-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <div class="collapse app-management-submenu" id="sectionsManagementSubmenu">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a href="/sections/car-sale" class="nav-link submenu-link">
+                                    <i class="bi bi-car-front"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Car Sale</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/sections/car-services" class="nav-link submenu-link">
+                                    <i class="bi bi-tools"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Car Services</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/sections/car-rent" class="nav-link submenu-link">
+                                    <i class="bi bi-key"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Car Rent</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <!-- <li class="nav-item">
+                                <a href="/sections/restaurant" class="nav-link submenu-link">
+                                    <i class="bi bi-cup-hot"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Restaurant</span>
+                                    </div>
+                                </a>
+                            </li> -->
+                            <li class="nav-item">
+                                <a href="/sections/jobs" class="nav-link submenu-link">
+                                    <i class="bi bi-briefcase"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Jobs</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/sections/other-services" class="nav-link submenu-link">
+                                    <i class="bi bi-three-dots"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Other Services</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/sections/real-estate" class="nav-link submenu-link">
+                                    <i class="bi bi-house"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Real Estate</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/sections/electronics" class="nav-link submenu-link">
+                                    <i class="bi bi-laptop"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">Electronics</span>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
-                <li class="nav-item">
-                    <a href="/systemOpsTracking" class="nav-link">
-                        <i class="bi bi-activity"></i>
-                        تتبع عمليات النظام
-                    </a>
-                </li>
-            </ul>
+                
+               <li class="nav-item">
+                                <a href="/best-advertisers" class="nav-link">
+                                    <i class="bi bi-star"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">تعيين أفضل المعلنين</span>
+                                    </div>
+                                </a>
+                            </li>
 
-            <button id="logoutBtn" class="logout-btn">
+                            <li class="nav-item">
+                                <a href="/users-management" class="nav-link">
+                                    <i class="bi bi-people-fill"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">إدارة المستخدمين</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/ads-management" class="nav-link">
+                                    <i class="bi bi-megaphone"></i>
+                                    <div class="nav-text">
+                                        <span class="nav-primary">إدارة الإعلانات</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <button id="logoutBtn" class="logout-btn">
                 <i class="bi bi-box-arrow-right me-2"></i>
                 تسجيل الخروج
             </button>
+            </ul>
+
+            
         </nav>
         <main class="flex-fill main-content">
-          <button class="btn" id="sidebarToggle" aria-label="Toggle sidebar">
-    <i class="bi bi-list"></i>
-</button>
             <div class="content-wrapper">
               
                 
                 @yield('content')
             </div>
         </main>
-      <div class="sidebar-overlay" id="sidebarOverlay"></div>
     </div>
 
     <script>
-        // عرض الإيميل في المكان الجديد
-        var user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+        // عرض اسم المستخدم من localStorage
+        const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
         if (user) {
-            document.getElementById('userEmail').innerHTML = `
-                <small style="opacity: 0.8; font-size: 0.8rem;">${user.email}</small>
+            document.getElementById('userInfo').innerHTML = `
+                <div>
+                    <strong>Admin</strong><br>
+                </div>
             `;
         }
 
@@ -1132,6 +1928,7 @@
             { title: 'التصاريح الأمنية', url: '/securityPermits', icon: 'bi-shield-check' },
             { title: 'إدارة التطبيق', url: '/appController', icon: 'bi-gear' },
             { title: 'معلومات التطبيق', url: '/AppSettings', icon: 'bi-info-circle' },
+            { title: 'إدارة المستخدمين', url: '/users-management', icon: 'bi-people-fill' },
             { title: 'الرئيسية', url: '/dashboard', icon: 'bi-house-door' }
         ];
         
@@ -1227,86 +2024,228 @@
             });
         }
     </script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        const body = document.body;
-
-        // عند الضغط على زر فتح القائمة
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => {
-                body.classList.toggle('sidebar-open');
-            });
-        }
-
-        // عند الضغط على الخلفية المعتمة لإغلاق القائمة
-        if (sidebarOverlay) {
-            sidebarOverlay.addEventListener('click', () => {
-                body.classList.remove('sidebar-open');
-            });
-        }
-    });
-</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
-    <script>
-      (function () {
-        if (window.__echoInitialized) return;
-        try {
-          // The Echo constructor is exposed by the IIFE build
-          if (typeof Echo !== 'function') {
-            console.warn('Laravel Echo library is not available on the page.');
-            return;
-          }
-
-          const token = (function(){
-            try { return localStorage.getItem('token') || ''; } catch (e) { return ''; }
-          })();
-
-          // Read config from environment via Blade
-          const PUSHER_APP_KEY = "{{ env('PUSHER_APP_KEY') }}";
-          const PUSHER_APP_CLUSTER = "{{ env('PUSHER_APP_CLUSTER', 'mt1') }}";
-          const PUSHER_HOST = "{{ env('PUSHER_HOST') }}"; // leave empty if using Pusher Cloud
-          const PUSHER_PORT = Number("{{ env('PUSHER_PORT', 6001) }}");
-          const PUSHER_SCHEME = "{{ env('PUSHER_SCHEME', request()->isSecure() ? 'https' : 'http') }}";
-
-          let echoOptions = {
-            broadcaster: 'pusher',
-            key: PUSHER_APP_KEY,
-            cluster: PUSHER_APP_CLUSTER,
-            forceTLS: (PUSHER_SCHEME === 'https') || (location.protocol === 'https:'),
-            encrypted: (PUSHER_SCHEME === 'https') || (location.protocol === 'https:'),
-            disableStats: true,
-            authEndpoint: "{{ url('/api/broadcasting/auth') }}",
-            auth: {
-              headers: {
-                'Authorization': token ? `Bearer ${token}` : '',
-                'Accept': 'application/json'
-              }
-            }
-          };
-
-          // If self-hosted websockets server is used, configure host/ports
-          if (PUSHER_HOST && PUSHER_HOST.trim() !== '') {
-            echoOptions.wsHost = PUSHER_HOST;
-            echoOptions.wsPort = PUSHER_PORT;
-            echoOptions.wssPort = PUSHER_PORT;
-            echoOptions.enabledTransports = ['ws', 'wss'];
-          }
-
-          // Initialize and expose globally
-          window.Echo = new Echo(echoOptions);
-          window.__echoInitialized = true;
-          console.log('%cEcho initialized','color:#28a745');
-        } catch (err) {
-          console.error('Failed to initialize Echo:', err);
-        }
-      })();
-    </script>
   
-    @stack('scripts')
     @yield('scripts')
+
+<script>
+// تحسين وظائف القائمة الجانبية
+document.addEventListener('DOMContentLoaded', function() {
+    // العناصر الأساسية
+    const submenuLinks = document.querySelectorAll('.submenu-link');
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    // وظيفة الـ dropdown للقائمة الفرعية - إدارة التطبيق
+    const dropdownToggle = document.querySelector('[data-bs-target="#appManagementSubmenu"]');
+    const submenu = document.getElementById('appManagementSubmenu');
+    const dropdownArrow = document.querySelector('.dropdown-arrow');
+    
+    if (dropdownToggle && submenu && dropdownArrow) {
+        // إضافة مستمع الأحداث للنقر
+        dropdownToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            if (isExpanded) {
+                // إغلاق القائمة
+                submenu.classList.remove('show');
+                this.setAttribute('aria-expanded', 'false');
+                dropdownArrow.style.transform = 'rotate(0deg)';
+            } else {
+                // فتح القائمة
+                submenu.classList.add('show');
+                this.setAttribute('aria-expanded', 'true');
+                dropdownArrow.style.transform = 'rotate(180deg)';
+            }
+        });
+        
+        // تأثير hover للسهم
+        dropdownToggle.addEventListener('mouseenter', function() {
+            dropdownArrow.style.color = 'rgba(255, 255, 255, 0.9)';
+        });
+        
+        dropdownToggle.addEventListener('mouseleave', function() {
+            dropdownArrow.style.color = 'rgba(255, 255, 255, 0.7)';
+        });
+    }
+    
+    // وظيفة الـ dropdown للقائمة الفرعية - إدارة الأقسام
+    const sectionsDropdownToggle = document.querySelector('[data-bs-target="#sectionsManagementSubmenu"]');
+    const sectionsSubmenu = document.getElementById('sectionsManagementSubmenu');
+    const sectionsDropdownArrow = sectionsDropdownToggle ? sectionsDropdownToggle.querySelector('.dropdown-arrow') : null;
+    
+    if (sectionsDropdownToggle && sectionsSubmenu && sectionsDropdownArrow) {
+        // إضافة مستمع الأحداث للنقر
+        sectionsDropdownToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            if (isExpanded) {
+                // إغلاق القائمة
+                sectionsSubmenu.classList.remove('show');
+                this.setAttribute('aria-expanded', 'false');
+                sectionsDropdownArrow.style.transform = 'rotate(0deg)';
+            } else {
+                // فتح القائمة
+                sectionsSubmenu.classList.add('show');
+                this.setAttribute('aria-expanded', 'true');
+                sectionsDropdownArrow.style.transform = 'rotate(180deg)';
+            }
+        });
+        
+        // تأثير hover للسهم
+        sectionsDropdownToggle.addEventListener('mouseenter', function() {
+            sectionsDropdownArrow.style.color = 'rgba(255, 255, 255, 0.9)';
+        });
+        
+        sectionsDropdownToggle.addEventListener('mouseleave', function() {
+            sectionsDropdownArrow.style.color = 'rgba(255, 255, 255, 0.7)';
+        });
+    }
+    const navLinks = document.querySelectorAll('.nav-link');
+    // تحسين تأثيرات الروابط الفرعية
+    submenuLinks.forEach(link => {
+        link.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(-5px) scale(1.02)';
+        });
+        
+        link.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateX(0) scale(1)';
+        });
+        
+        link.addEventListener('mousedown', function() {
+            this.style.transform = 'translateX(-3px) scale(0.98)';
+        });
+        
+        link.addEventListener('mouseup', function() {
+            this.style.transform = 'translateX(-5px) scale(1.02)';
+        });
+    });
+    
+    // تحديد الرابط النشط
+    const currentPath = window.location.pathname;
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && currentPath === href) {
+            link.classList.add('active');
+        }
+    });
+    
+    // تأثير الموجة عند النقر
+    function createRippleEffect(element, event) {
+        const ripple = document.createElement('span');
+        const rect = element.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = event.clientX - rect.left - size / 2;
+        const y = event.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${x}px;
+            top: ${y}px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
+            z-index: 1;
+        `;
+        
+        element.style.position = 'relative';
+        element.style.overflow = 'hidden';
+        element.appendChild(ripple);
+        
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
+    }
+    
+    // إضافة تأثير الموجة للروابط
+    [...navLinks, ...submenuLinks].forEach(link => {
+        link.addEventListener('click', function(e) {
+            createRippleEffect(this, e);
+        });
+    });
+    
+    // إضافة أنماط CSS للتأثيرات
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes ripple {
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        .nav-link:focus {
+            outline: 2px solid var(--primary-blue);
+            outline-offset: 2px;
+        }
+        
+        .submenu-link:focus {
+            outline: 2px solid var(--white);
+            outline-offset: 2px;
+        }
+        
+        /* تحسين الحركة للأجهزة المحمولة */
+        @media (max-width: 768px) {
+            .dropdown-nav .dropdown-toggle:hover {
+                transform: none !important;
+            }
+            
+            .submenu-link:hover {
+                transform: none !important;
+            }
+        }
+        
+        /* تأثير التحميل */
+        .sidebar {
+            animation: slideInLeft 0.5s ease-out;
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // تحسين الأداء مع Intersection Observer
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+    
+    // مراقبة عناصر القائمة
+    submenuLinks.forEach(link => {
+        link.style.opacity = '0';
+        link.style.transform = 'translateY(20px)';
+        link.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        observer.observe(link);
+    });
+});
+</script>
 
 </body>
 </html>

@@ -5,7 +5,7 @@
 @section('content')
 <style>
     .dashboard-header {
-        background: linear-gradient(135deg, #2c3e50 0%, #73C6E6 100%);
+        background: linear-gradient(135deg, #FC8700 0%, #6c757d 100%);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
@@ -137,10 +137,32 @@
 <div class="dashboard-header">
     <div class="welcome-text">
         <h1 class="mb-3">مرحبًا بك في لوحة التحكم</h1>
-        <p class="mb-0 fs-5">إدارة شاملة لجميع الخدمات  </p>
+        <p class="mb-0 fs-5">إدارة شاملة لجميع خدمات منصة مسار</p>
     </div>
 </div>
 
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <h2 class="section-title">الإجراءات السريعة</h2>
+    <div class="d-flex flex-wrap">
+        <a href="/accounts" class="action-btn">
+            <i class="bi bi-person-plus"></i>
+            إدارة مستخدم جديد
+        </a>
+        <a href="/requests" class="action-btn">
+            <i class="bi bi-plus-circle"></i>
+            إدارة طلب جديد
+        </a>
+        <a href="/securityPermits" class="action-btn">
+            <i class="bi bi-shield-plus"></i>
+            إدارة تصريح أمني
+        </a>
+        <a href="/AppSettings" class="action-btn">
+            <i class="bi bi-gear"></i>
+            إعدادات النظام
+        </a>
+    </div>
+</div>
 
 
 @endsection

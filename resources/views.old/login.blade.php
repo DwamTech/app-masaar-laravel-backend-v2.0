@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3a8a 0%, #6b7280 100%);
+            background: linear-gradient(135deg, #6c757d 0%, #FC8700 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -66,7 +66,7 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #3b82f6, #1e3a8a, #6b7280, #1e40af);
+            background: linear-gradient(90deg, #FC8700, #6c757d, #FC8700, #495057);
             background-size: 300% 100%;
             animation: gradientShift 3s ease infinite;
         }
@@ -93,14 +93,15 @@
         }
 
         .logo-image {
-            width: 150px;
-            height: 150px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
-            object-fit:cover;
-            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
+            object-fit: cover;
+            box-shadow: 0 15px 40px rgba(252, 135, 0, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
             margin-bottom: 15px;
+          padding:15px;
             transition: transform 0.3s ease;
-            border: 3px solid #3b82f6;
+            border: 3px solid #FC8700;
         }
 
         .logo-image:hover {
@@ -110,7 +111,7 @@
         .app-name {
             font-size: 32px;
             font-weight: 700;
-            background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+            background: linear-gradient(135deg, #FC8700, #6c757d);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -141,7 +142,7 @@
             transform: translateX(-50%);
             width: 50px;
             height: 3px;
-            background: linear-gradient(90deg, #3b82f6, #1e3a8a);
+            background: linear-gradient(90deg, #FC8700, #6c757d);
             border-radius: 2px;
         }
 
@@ -168,8 +169,8 @@
         }
 
         .form-control:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+            border-color: #FC8700;
+            box-shadow: 0 0 0 0.2rem rgba(252, 135, 0, 0.25);
             background: rgba(255, 255, 255, 1);
             transform: translateY(-2px);
         }
@@ -185,11 +186,11 @@
         }
 
         .form-control:focus + .input-icon {
-            color: #3b82f6;
+            color: #FC8700;
         }
 
         .login-btn {
-            background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+            background: linear-gradient(135deg, #FC8700 0%, #6c757d 100%);
             border: none;
             border-radius: 12px;
             padding: 15px;
@@ -215,7 +216,7 @@
 
         .login-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 10px 25px rgba(252, 135, 0, 0.4);
         }
 
         .login-btn:hover::before {
@@ -299,10 +300,66 @@
             }
         }
 
+        /* Social Login Styles */
+        .social-login-section {
+            margin-top: 25px;
+        }
+        
+        .divider {
+            position: relative;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .divider span {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0 15px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .google-login-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px 20px;
+            background: #fff;
+            color: #333;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            border: 1px solid #dadce0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .google-login-btn:hover {
+            background: #f8f9fa;
+            color: #333;
+            text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
         @media (max-width: 768px) {
             .login-card {
                 margin: 20px;
                 padding: 30px 25px;
+              
             }
             
             .app-name {
@@ -325,8 +382,8 @@
     <div class="login-container">
         <div class="login-card">
             <div class="logo-section">
-                <img src="{{ asset('/storage/uploads/images/dubaisale-Copy.jpeg') }}" alt="DubiSale Logo" class="logo-image">
-                <div class="app-name">DubiSale</div>
+                <img src="https://msar.app/storage/uploads/images/masar.png" alt="Masar Logo" class="logo-image">
+                <div class="app-name">مسار - Masar</div>
                 <div class="app-subtitle">Admin Dashboard</div>
             </div>
             
@@ -352,6 +409,8 @@
                     دخول
                 </button>
             </form>
+            
+            
         </div>
     </div>
 
@@ -372,8 +431,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-           body: JSON.stringify({ identifier: email, password })
-
+            body: JSON.stringify({ email, password })
         });
 
         console.log("Raw response:", response);
@@ -386,20 +444,19 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         // Log the entire response data
         console.log("Parsed response JSON:", data);
 
-        if (data.message === "Login successful." && data.user && data.user.role === 'admin') {
-    console.log("Login successful! Storing token and user data in localStorage...");
-    localStorage.setItem('token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    console.log("Token:", data.access_token);
-    console.log("User:", data.user);
-    console.log("Redirecting to /dashboard...");
-    window.location.href = '/dashboard';
-} else {
-    console.log("Login failed! Message:", data.message);
-    document.getElementById('errorMsg').innerText = data.message || 'Login failed';
-    document.getElementById('errorMsg').classList.remove('d-none');
-}
-
+        if (data.status && data.user && data.user.user_type === 'admin') {
+            console.log("Login successful! Storing token and user data in localStorage...");
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            console.log("Token:", data.token);
+            console.log("User:", data.user);
+            console.log("Redirecting to /dashboard...");
+            window.location.href = '/dashboard';
+        } else {
+            console.log("Login failed! Message:", data.message);
+            document.getElementById('errorMsg').innerText = data.message || 'Login failed';
+            document.getElementById('errorMsg').classList.remove('d-none');
+        }
     } catch (error) {
         console.error("Error during login request:", error);
         document.getElementById('errorMsg').innerText = 'An error occurred. Please try again.';
