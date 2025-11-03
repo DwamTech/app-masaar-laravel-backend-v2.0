@@ -2,21 +2,16 @@
 
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import react from '@vitejs/plugin-react';
-import path from 'path'; // قم بإضافة هذا السطر
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['admin-panel/src/main.jsx'],
+            input: [
+                'resources/css/app.css',
+                'resources/css/landing.css',
+                'resources/js/app.js'
+            ],
             refresh: true,
         }),
-        react(),
     ],
-    // أضف هذا الجزء بالكامل
-    resolve: {
-        alias: {
-            '@': path.resolve(__dirname, 'admin-panel/src'),
-        },
-    },
 });
