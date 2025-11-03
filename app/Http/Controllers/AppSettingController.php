@@ -63,7 +63,11 @@ class AppSettingController extends Controller
     // get/set صريحة لسعر الكيلومتر لتكون نقطة اتصال واضحة
     public function getPricePerKm()
     {
+        // دعم كلا المفتاحين: underscore و hyphen لضمان التوافق
         $setting = AppSetting::where('key', 'price_per_km')->first();
+        if (!$setting) {
+            $setting = AppSetting::where('key', 'price-per-km')->first();
+        }
         $value = $setting ? $setting->value : null;
         $decoded = json_decode($value, true);
         $value = $decoded ?? $value;
@@ -81,10 +85,13 @@ class AppSettingController extends Controller
     public function setPricePerKm(Request $request)
     {
         $request->validate(['value' => 'required|numeric|min:0']);
+        // خزّن بالقيمة الموحدة underscore، واحذف النسخة القديمة إن وجدت بمفتاح hyphen
         AppSetting::updateOrCreate(
             ['key' => 'price_per_km'],
             ['value' => (string) $request->input('value')]
         );
+        // تنظيف مفتاح قديم إن وجد
+        AppSetting::where('key', 'price-per-km')->delete();
         return response()->json([
             'status' => true,
             'message' => 'تم ضبط السعر لكل كيلومتر',

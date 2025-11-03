@@ -360,14 +360,14 @@
         <h2 class="modern-title">معلومات التطبيق - App Settings</h2>
         <div id="settingsApp">
             <ul class="modern-tabs" id="settingsTabs" dir="rtl">
-                <li><button class="modern-tab active" onclick="changeSettingsTab('banners')">✨ Banners</button></li>
+                <li><button class="modern-tab active" onclick="changeSettingsTab('banners', this)">✨ Banners</button></li>
                 <!-- ====== New Tab Added ====== -->
-                <li><button class="modern-tab" onclick="changeSettingsTab('restaurantBanners')">🍔 بنرات المطاعم</button></li>
-                <li><button class="modern-tab" onclick="changeSettingsTab('deliveryPerKm')">🚚 سعر الكيلو للتوصيل</button></li>
-                <li><button class="modern-tab" onclick="changeSettingsTab('aboutUs')">📱 عن التطبيق</button></li>
-                <li><button class="modern-tab" onclick="changeSettingsTab('termsAndConditions')">📋 الشروط والأحكام</button></li>
-                <li><button class="modern-tab" onclick="changeSettingsTab('faqs')">❓ الأسئلة الشائعة</button></li>
-                <li><button class="modern-tab" onclick="changeSettingsTab('socialMedia')">🌐 روابط السوشيال</button></li>
+                <li><button class="modern-tab" onclick="changeSettingsTab('restaurantBanners', this)">🍔 بنرات المطاعم</button></li>
+                <li><button class="modern-tab" onclick="changeSettingsTab('deliveryPerKm', this)">🚚 سعر الكيلو للتوصيل</button></li>
+                <li><button class="modern-tab" onclick="changeSettingsTab('aboutUs', this)">📱 عن التطبيق</button></li>
+                <li><button class="modern-tab" onclick="changeSettingsTab('termsAndConditions', this)">📋 الشروط والأحكام</button></li>
+                <li><button class="modern-tab" onclick="changeSettingsTab('faqs', this)">❓ الأسئلة الشائعة</button></li>
+                <li><button class="modern-tab" onclick="changeSettingsTab('socialMedia', this)">🌐 روابط السوشيال</button></li>
             </ul>
             <div id="settingsContent" class="modern-content"></div>
         </div>
@@ -384,10 +384,14 @@ let settingsData = {};
 let restaurantBannersData = [];
 let currentSettingsTab = 'banners';
 
-function changeSettingsTab(tab) {
+function changeSettingsTab(tab, el) {
     currentSettingsTab = tab;
     document.querySelectorAll('#settingsTabs .modern-tab').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    if (el) {
+        el.classList.add('active');
+    } else if (typeof event !== 'undefined' && event.target) {
+        event.target.classList.add('active');
+    }
     renderSettingsContent();
 }
 
@@ -412,6 +416,10 @@ async function fetchSettings() {
     const [settingsJson, bannersJson, priceJson] = await Promise.all([settingsPromise, restaurantBannersPromise, pricePerKmPromise]);
     
     settingsData = settingsJson.settings || {};
+    // طبيع المفتاح لسعر/كم لو كان محفوظاً بصيغة شرطة
+    if (settingsData && settingsData['price-per-km'] !== undefined && settingsData['price_per_km'] === undefined) {
+        settingsData.price_per_km = settingsData['price-per-km'];
+    }
     // Assuming the API returns an object with a "ResturantBanners" key which is an array of objects {id, image_url}
     restaurantBannersData = bannersJson.ResturantBanners || []; 
     
@@ -634,12 +642,16 @@ async function deleteRestaurantBanner(id) {
 // ====== Delivery Price Per Km (Global Default) ====== //
 function renderDeliveryPerKm() {
     // Current value may be string from /api/settings, ensure numeric display
-    let current = settingsData.price_per_km;
+    let current = (settingsData.price_per_km !== undefined ? settingsData.price_per_km : settingsData['price-per-km']);
     if (current === undefined || current === null) current = '';
     // If value is string, keep as-is for input value
     const html = `
     <div class="modern-form">
         <h4>سعر الكيلومتر للتوصيل (افتراضي)</h4>
+        <div class="modern-input-group">
+            <label class="form-label">السعر الحالي على النظام</label>
+            <input type="text" class="modern-input" value="${current !== '' ? current : '— لا يوجد'}" readonly>
+        </div>
         <form id="deliveryPerKmForm" onsubmit="return saveDeliveryPerKm()">
             <div class="modern-input-group">
                 <label class="form-label">السعر لكل كيلومتر</label>
