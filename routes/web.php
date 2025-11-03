@@ -63,3 +63,5 @@ Route::post('/otp/reset-password', [OtpAuthController::class, 'resetPassword'])-
 // Google OAuth Routes
 Route::get('auth/google/redirect', [SocialLoginController::class, 'redirectToGoogle'])->name('google.redirect');
 Route::get('auth/google/callback', [SocialLoginController::class, 'handleGoogleCallback'])->name('google.callback');
+Route::get('/systemOpsTracking', function () { return view('systemOpsTracking'); })->name('systemOpsTracking');
+

@@ -1079,7 +1079,12 @@
                     </a>
                 </li>
               
-            </ul>
+                            <li class=""nav-item"">
+                    <a href=""/systemOpsTracking"" class=""nav-link"">
+                        <i class=""bi bi-activity""></i>
+                        تتبع عمليات النظام
+                    </a>
+                </li></ul>
 
             <button id="logoutBtn" class="logout-btn">
                 <i class="bi bi-box-arrow-right me-2"></i>
