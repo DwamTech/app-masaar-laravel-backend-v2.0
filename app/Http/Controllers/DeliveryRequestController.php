@@ -712,21 +712,21 @@ class DeliveryRequestController extends Controller
     private function trySendNotification(User $user, string $type, string $title, string $message): void
     {
         Log::info("[Notification Helper] Preparing to notify User #{$user->id} ({$user->name}) with title '{$title}'.");
-        
-        $tokens = DB::table('device_tokens')
-            ->where('user_id', $user->id)
-            ->where('is_enabled', 1)
-            ->pluck('token')
-            ->all();
-        
-        if (empty($tokens)) {
-            Log::warning("[Notification Helper] SKIPPING: No active device tokens found for User #{$user->id}.");
-            return;
+        // لا تحجب الإرسال إذا لم توجد توكنات؛ Notifier::send يتولى FCM
+        try {
+            // سجل عدد التوكنات المتوفرة لأغراض التتبع فقط
+            $tokensCount = DB::table('device_tokens')
+                ->where('user_id', $user->id)
+                ->where('is_enabled', 1)
+                ->count();
+            Log::info("[Notification Helper] Active tokens count for User #{$user->id}: {$tokensCount}");
+
+            // إرسال وإنشاء إشعار قاعدة البيانات وبث الحدث الفوري دائماً
+            Notifier::send($user, $type, $title, $message);
+            Log::info("[Notification Helper] SUCCESS: Notifier::send dispatched for User #{$user->id}.");
+        } catch (\Throwable $e) {
+            Log::error("[Notification Helper] ERROR sending notification to User #{$user->id}: " . $e->getMessage());
         }
-        
-        Log::info("[Notification Helper] Found " . count($tokens) . " token(s) for User #{$user->id}. Attempting to send...");
-        Notifier::send($user, $type, $title, $message);
-        Log::info("[Notification Helper] SUCCESS: Notifier::send called for User #{$user->id}.");
     }
 
     /**
