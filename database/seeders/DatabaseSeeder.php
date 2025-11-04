@@ -9,6 +9,9 @@ use Database\Seeders\RealEstateUsersSeeder;
 use Database\Seeders\CarRentalUsersSeeder;
 use Database\Seeders\RestaurantUsersSeeder;
 use Database\Seeders\PropertiesSeeder;
+use Database\Seeders\CountriesSeeder;
+use Database\Seeders\NationalitiesSeeder;
+use Database\Seeders\SecurityPermitSettingsSeeder;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -41,6 +44,10 @@ class DatabaseSeeder extends Seeder
             CarRentalUsersSeeder::class,
             RestaurantUsersSeeder::class,
             PropertiesSeeder::class,
+            // Security Permits prerequisites
+            CountriesSeeder::class,
+            NationalitiesSeeder::class,
+            SecurityPermitSettingsSeeder::class,
         ]);
     }
 }
