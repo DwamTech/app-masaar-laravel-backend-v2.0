@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!API_TOKEN) { window.location.href = '/login'; return; }
 
     const loggedInAdmin = JSON.parse(localStorage.getItem('user'));
-    const isAllowedAdmin = loggedInAdmin && loggedInAdmin.user_type === 'admin' && ((loggedInAdmin.email || '').toLowerCase() === 'admin@msar.app');
+    const isAllowedAdmin = loggedInAdmin && loggedInAdmin.user_type === 'admin' && ((loggedInAdmin.email || '').toLowerCase() === 'admin@masar.app');
     if (!isAllowedAdmin) {
         const container = document.querySelector('.chat-container');
         if (container) {
