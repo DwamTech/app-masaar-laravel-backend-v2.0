@@ -74,3 +74,12 @@ Route::get('/preview/email/otp', function () {
     ]);
 })->name('preview.email.otp');
 
+// Preview route for Password Reset OTP email (development use)
+Route::get('/preview/email/password-reset', function () {
+    return view('emails.password-reset-otp', [
+        'otp' => '318642',
+        'expiryMinutes' => 10,
+        'userName' => 'مستخدم'
+    ]);
+})->name('preview.email.password-reset');
+

@@ -49,21 +49,19 @@ class PasswordResetOtp extends Notification implements ShouldQueue
      */
     public function toMail($notifiable): MailMessage
     {
-        $expiryMinutes = Carbon::now()->diffInMinutes($this->expiresAt);
-        
+        // نحسب الوقت المتبقي بالدقائق بدقة لتجنب الأخطاء حول الدقائق الأخيرة
+        $secondsLeft = Carbon::now()->diffInSeconds($this->expiresAt);
+        $expiryMinutes = max(1, (int) ceil($secondsLeft / 59));
+
+        // نستخدم قالب مخصص موحّد الهوية بدون عناصر Laravel الافتراضية
         return (new MailMessage)
-            ->subject('إعادة تعيين كلمة المرور - رمز التحقق')
-            ->greeting('مرحباً ' . $this->userName . '!')
-            ->line('لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك.')
-            ->line('لإعادة تعيين كلمة المرور، يرجى استخدام رمز التحقق التالي:')
-            ->line('')
-            ->line('**' . $this->otp . '**')
-            ->line('')
-            ->line('هذا الرمز صالح لمدة ' . $expiryMinutes . ' دقائق فقط.')
-            ->line('إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذا البريد الإلكتروني.')
-            ->line('لا تشارك هذا الرمز مع أي شخص آخر لحماية حسابك.')
-            ->action('إعادة تعيين كلمة المرور', url('/reset-password'))
-            ->salutation('مع أطيب التحيات،\nفريق التطبيق');
+            ->from(config('mail.from.address'), 'msar')
+            ->subject('رمز التحقق لإعادة تعيين كلمة المرور')
+            ->view('emails.password-reset-otp', [
+                'otp' => $this->otp,
+                'expiryMinutes' => $expiryMinutes,
+                'userName' => $this->userName,
+            ]);
     }
 
     /**

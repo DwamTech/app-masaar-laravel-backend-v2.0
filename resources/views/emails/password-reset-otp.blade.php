@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رمز التحقق لتأكيد البريد الإلكتروني</title>
+    <title>رمز التحقق لإعادة تعيين كلمة المرور</title>
     <style>
         body { font-family: Tahoma, Arial, sans-serif; background:#f6f6f6; color:#222; margin:0; padding:20px; direction: rtl; text-align: right; }
         .container { max-width:600px; margin:0 auto; background:#ffffff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); overflow:hidden; }
@@ -25,7 +25,7 @@
         <div class="content">
             <div class="greeting">مرحباً {{ $userName }}!</div>
             <p>
-                شكراً لك على التسجيل في تطبيقنا. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق التالي:
+                لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك. لإكمال العملية، يرجى استخدام رمز التحقق التالي:
             </p>
 
             <div class="otp-box">
@@ -34,7 +34,7 @@
 
             <p>
                 هذا الرمز صالح لمدة {{ $expiryMinutes }} دقيقة فقط.
-                إذا لم تقم بإنشاء حساب، يرجى تجاهل هذا البريد الإلكتروني.
+                إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذا البريد الإلكتروني.
             </p>
             <p>
                 لا تشارك هذا الرمز مع أي شخص آخر لحماية حسابك.
