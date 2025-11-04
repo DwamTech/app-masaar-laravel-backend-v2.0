@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\ServiceRequest;
@@ -12,6 +13,7 @@ use App\Support\Notifier;
 use App\Models\DeliveryRequest;
 use App\Models\DeliveryDestination;
 use App\Models\DeliveryStatusHistory;
+use App\Models\CarRental;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -344,3 +346,120 @@ Artisan::command('delivery:seed-pending {--count=5} {--client_id=} {--client_ema
     $this->info('Drivers from the same governorate can view them via GET /api/delivery/available-requests.');
     return 0;
 })->purpose('Create pending_offers delivery requests visible to drivers in the same governorate');
+
+// Simulate full car-rent flow (create -> accept -> start -> complete) and dispatch notifications
+Artisan::command('car-orders:test-flow {--order_id=} {--agreed=150}', function () {
+    $this->info('== Car Orders Test Flow (create -> accept -> start -> complete) ==');
+
+    try {
+        // Ensure client user
+        $client = User::where('user_type', 'normal')->first();
+        if (!$client) {
+            $client = User::firstOrCreate(
+                ['email' => 'test.client@example.com'],
+                [
+                    'name' => 'Test Client',
+                    'password' => bcrypt('password'),
+                    'phone' => '01000000100',
+                    'governorate' => 'القاهرة',
+                    'city' => 'مدينة نصر',
+                    'user_type' => 'normal',
+                    'is_approved' => true,
+                    'account_active' => true,
+                    'is_email_verified' => true,
+                ]
+            );
+            $this->warn("Created test client user #{$client->id}");
+        }
+
+        // Ensure provider office user
+        $officeUser = User::where('user_type', 'car_rental_office')->first();
+        if (!$officeUser) {
+            $officeUser = User::firstOrCreate(
+                ['email' => 'test.office@example.com'],
+                [
+                    'name' => 'Test Car Office',
+                    'password' => bcrypt('password'),
+                    'phone' => '01000000101',
+                    'governorate' => 'القاهرة',
+                    'city' => 'مدينة نصر',
+                    'user_type' => 'car_rental_office',
+                    'is_approved' => true,
+                    'account_active' => true,
+                    'is_email_verified' => true,
+                ]
+            );
+            $this->warn("Created test office user #{$officeUser->id}");
+        }
+
+        // Ensure CarRental for office user
+        $carRental = CarRental::firstOrCreate(
+            ['user_id' => $officeUser->id],
+            ['office_name' => 'Test Rental Office', 'city' => 'Cairo']
+        );
+        $this->line("Using CarRental #{$carRental->id} for office user #{$officeUser->id}");
+
+        $controller = new \App\Http\Controllers\CarServiceOrderController();
+
+        $orderId = $this->option('order_id');
+        if (!$orderId) {
+            // Create new order as client (this triggers 'created' notification)
+            Auth::login($client);
+            $req = \Illuminate\Http\Request::create('/api/car-orders', 'POST', [
+                'order_type' => 'rent',
+                'provider_type' => 'office',
+                'rental_period_type' => 'daily',
+                'rental_duration' => 2,
+                'requested_date' => now()->toDateString(),
+                'delivery_location' => $client->city ?: 'القاهرة',
+            ]);
+            $resp = $controller->store($req);
+            $payload = $resp->getData(true);
+            if (!(isset($payload['status']) && $payload['status'] === true)) {
+                throw new \RuntimeException('Failed to create order: ' . json_encode($payload));
+            }
+            $orderId = $payload['order']['id'];
+            $this->info("Created order #{$orderId} (status pending_provider)");
+        } else {
+            $this->info("Using existing order #{$orderId}");
+        }
+
+        // Accept by provider (triggers 'accepted')
+        Auth::logout();
+        Auth::login($officeUser);
+        $acceptReq = \Illuminate\Http\Request::create("/api/car-orders/{$orderId}/accept-by-provider", 'POST', [
+            'agreed_price' => (float) $this->option('agreed'),
+        ]);
+        $resp2 = $controller->acceptByProvider($acceptReq, $orderId);
+        $payload2 = $resp2->getData(true);
+        if (!(isset($payload2['status']) && $payload2['status'] === true)) {
+            throw new \RuntimeException('Failed to accept order: ' . json_encode($payload2));
+        }
+        $this->info("Accepted order #{$orderId}");
+
+        // Start by provider (triggers 'started')
+        $startReq = \Illuminate\Http\Request::create("/api/car-orders/{$orderId}/start", 'POST');
+        $resp3 = $controller->startByProvider($startReq, $orderId);
+        $payload3 = $resp3->getData(true);
+        if (!(isset($payload3['status']) && $payload3['status'] === true)) {
+            throw new \RuntimeException('Failed to start order: ' . json_encode($payload3));
+        }
+        $this->info("Started order #{$orderId}");
+
+        // Complete by provider (triggers 'finished')
+        $completeReq = \Illuminate\Http\Request::create("/api/car-orders/{$orderId}/complete", 'POST');
+        $resp4 = $controller->completeByProvider($completeReq, $orderId);
+        $payload4 = $resp4->getData(true);
+        if (!(isset($payload4['status']) && $payload4['status'] === true)) {
+            throw new \RuntimeException('Failed to complete order: ' . json_encode($payload4));
+        }
+        $this->info("Completed order #{$orderId}");
+
+        $this->info('Flow finished. Check storage/logs/laravel.log, database notifications, and broadcast consumers.');
+        return 0;
+    } catch (\Throwable $e) {
+        $this->error('Test flow failed: ' . $e->getMessage());
+        Log::error('car-orders:test-flow error', ['message' => $e->getMessage()]);
+        return 1;
+    }
+})->purpose('Run a full simulated flow and dispatch notifications for each status');

@@ -55,6 +55,7 @@ class EmailVerificationOtp extends Notification implements ShouldQueue
 
         // نستخدم قالب مخصص لعرض بريد أنيق بدون لوجو Laravel المكسور
         return (new MailMessage)
+            ->from(config('mail.from.address'), 'msar')
             ->subject('رمز التحقق لتأكيد البريد الإلكتروني')
             ->view('emails.verify-email-otp', [
                 'otp' => $this->otp,

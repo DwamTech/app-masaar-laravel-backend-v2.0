@@ -50,6 +50,8 @@ class RegisteredUserController extends Controller
             'phone'       => $request->phone,
             'governorate' => $request->governorate,
             'user_type'   => $request->user_type,
+            // الموافقة التلقائية للحسابات العادية فقط
+            'is_approved' => $request->user_type === 'normal' ? true : false,
             // تفعيل حسابات الـ admin تلقائياً
             'is_email_verified' => $request->user_type === 'admin' ? true : false,
             'account_active' => $request->user_type === 'admin' ? true : false,

@@ -207,6 +207,62 @@ class CarServiceOrderController extends Controller
     }
 
     /**
+     * [أدمن] اعتماد الطلب: تحويله إلى pending_provider (في حال كان pending_admin).
+     * Route: POST /api/car-orders/{id}/admin-approve
+     */
+    public function approveByAdmin(Request $request, $id)
+    {
+        $order = CarServiceOrder::findOrFail($id);
+        if ($order->status !== 'pending_admin') {
+            return response()->json(['status' => false, 'message' => 'لا يمكن اعتماد هذا الطلب في حالته الحالية'], 409);
+        }
+
+        $order->status = 'pending_provider';
+        $order->save();
+
+        OrderStatusHistory::create([
+            'order_id' => $order->id,
+            'status' => 'pending_provider',
+            'changed_by' => auth()->id(),
+            'note' => 'اعتماد الطلب من قبل الإدارة',
+        ]);
+
+        $this->sendCarOrderNotifications($order, 'pending_provider');
+        return response()->json(['status' => true, 'message' => 'تم اعتماد الطلب وإتاحته لمقدمي الخدمة']);
+    }
+
+    /**
+     * [أدمن] رفض الطلب وتحويله إلى rejected مع سبب اختياري.
+     * Route: POST /api/car-orders/{id}/admin-reject
+     */
+    public function rejectByAdmin(Request $request, $id)
+    {
+        $order = CarServiceOrder::findOrFail($id);
+        if ($order->status !== 'pending_admin') {
+            return response()->json(['status' => false, 'message' => 'لا يمكن رفض هذا الطلب في حالته الحالية'], 409);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $order->status = 'rejected';
+        $order->rejection_reason = $validated['reason'] ?? null;
+        $order->rejected_at = now();
+        $order->save();
+
+        OrderStatusHistory::create([
+            'order_id' => $order->id,
+            'status' => 'rejected',
+            'changed_by' => auth()->id(),
+            'note' => 'رفض الطلب من قبل الإدارة',
+        ]);
+
+        $this->sendCarOrderNotifications($order, 'rejected');
+        return response()->json(['status' => true, 'message' => 'تم رفض الطلب']);
+    }
+
+    /**
      * [عام] تقديم عرض سعر.
      */
     public function offer(Request $request, $orderId)
@@ -221,6 +277,22 @@ class CarServiceOrderController extends Controller
         $order->status = 'negotiation';
         $order->save();
         OrderStatusHistory::create(['order_id' => $order->id, 'status' => 'negotiation', 'changed_by' => Auth::id(), 'note' => 'تقديم عرض جديد.']);
+        // إشعار الطرف المقابل بوجود عرض/تفاوض جديد
+        try {
+            $order->load(['client', 'provider']);
+            if ($request->offered_by === 'provider') {
+                if ($order->client) {
+                    $this->trySendNotification($order->client, 'car_order_new_offer', 'عرض جديد على طلبك', 'تم تقديم عرض جديد على طلبك رقم #' . $order->id);
+                }
+            } else {
+                // offered_by === 'client' => نبلغ المقدم إن كان معيّنًا
+                if ($order->provider) {
+                    $this->trySendNotification($order->provider, 'car_order_client_counter', 'تحديث من العميل', 'قام العميل بتحديث العرض/التفاوض على الطلب رقم #' . $order->id);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[Car Order Offer Notification] Failed: ' . $e->getMessage());
+        }
         return response()->json(['status' => true, 'message' => 'تم تقديم العرض بنجاح', 'offer' => $offer]);
     }
 
@@ -303,7 +375,8 @@ class CarServiceOrderController extends Controller
             'changed_by' => $currentUser->id,
             'note' => 'بدأ تنفيذ الطلب من قبل مقدم الخدمة',
         ]);
-
+        // إشعار العميل والمقدم ببدء التنفيذ
+        $this->sendCarOrderNotifications($order, 'started');
         return response()->json(['status' => true, 'message' => 'تم بدء تنفيذ الطلب', 'order' => $order]);
     }
 
@@ -333,7 +406,8 @@ class CarServiceOrderController extends Controller
             'changed_by' => $currentUser->id,
             'note' => 'تم إنهاء الطلب من قبل مقدم الخدمة',
         ]);
-
+        // إشعار العميل والمقدم بإكمال الطلب
+        $this->sendCarOrderNotifications($order, 'finished');
         return response()->json(['status' => true, 'message' => 'تم إنهاء الطلب بنجاح', 'order' => $order]);
     }
 
@@ -401,6 +475,14 @@ class CarServiceOrderController extends Controller
                 case 'accepted':
                     if ($customer) $this->trySendNotification($customer, 'car_order_accepted', 'تم تأكيد طلبك!', 'تم تأكيد طلبك رقم #' . $order->id);
                     if ($provider) $this->trySendNotification($provider, 'car_order_confirmed', 'لديك خدمة مؤكدة!', 'تم تأكيد خدمتك للطلب رقم #' . $order->id);
+                    break;
+                case 'started':
+                    if ($customer) $this->trySendNotification($customer, 'car_order_started', 'بدأ تنفيذ طلبك', 'تم بدء تنفيذ الطلب رقم #' . $order->id . ' من قبل مقدم الخدمة.');
+                    if ($provider) $this->trySendNotification($provider, 'car_order_in_progress', 'بدأت تنفيذ الطلب', 'بدأت تنفيذ الطلب رقم #' . $order->id . ' بنجاح.');
+                    break;
+                case 'finished':
+                    if ($customer) $this->trySendNotification($customer, 'car_order_finished', 'تم إكمال طلبك', 'تم إكمال الطلب رقم #' . $order->id . ' بنجاح. نأمل أن تكون تجربتك ممتازة!');
+                    if ($provider) $this->trySendNotification($provider, 'car_order_completed', 'تم إكمال الطلب', 'تم إكمال الطلب رقم #' . $order->id . ' بنجاح.');
                     break;
             }
         } catch (\Throwable $e) {
@@ -608,17 +690,10 @@ class CarServiceOrderController extends Controller
      */
     private function trySendNotification(User $user, string $type, string $title, string $message): void
     {
-        Log::info("[Notification Helper] Preparing to notify User #{$user->id} ({$user->name}) with title '{$title}'.");
-        $tokens = DB::table('device_tokens')->where('user_id', '==', $user->id)->where('is_enabled', 1)->pluck('token')->all();
-        
-        if (empty($tokens)) {
-            Log::warning("[Notification Helper] SKIPPING: No active device tokens found for User #{$user->id}.");
-            return;
-        }
-        
-        Log::info("[Notification Helper] Found " . count($tokens) . " token(s) for User #{$user->id}. Attempting to send...");
+        Log::info("[Notification Helper] Notifying User #{$user->id} ({$user->name}) with title '{$title}'.");
+        // اترك كل فحوصات التوكينات والإرسال إلى طبقة Notifier لكي نتأكد من إنشاء الإشعار دائمًا وبثّه
         Notifier::send($user, $type, $title, $message);
-        Log::info("[Notification Helper] SUCCESS: Notifier::send called for User #{$user->id}.");
+        Log::info("[Notification Helper] DISPATCHED via Notifier::send for User #{$user->id}.");
     }
 
     /**

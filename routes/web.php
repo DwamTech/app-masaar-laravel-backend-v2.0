@@ -65,3 +65,12 @@ Route::get('auth/google/redirect', [SocialLoginController::class, 'redirectToGoo
 Route::get('auth/google/callback', [SocialLoginController::class, 'handleGoogleCallback'])->name('google.callback');
 Route::get('/systemOpsTracking', function () { return view('systemOpsTracking'); })->name('systemOpsTracking');
 
+// Preview route for OTP email template (development use)
+Route::get('/preview/email/otp', function () {
+    return view('emails.verify-email-otp', [
+        'otp' => '837415',
+        'expiryMinutes' => 11,
+        'userName' => 'eldo2d!'
+    ]);
+})->name('preview.email.otp');
+
