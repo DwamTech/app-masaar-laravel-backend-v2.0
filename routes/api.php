@@ -62,6 +62,9 @@ Route::get('/settings/price-per-km', [AppSettingController::class, 'getPricePerK
 // نقطة جلب إعداد مفرد
 Route::get('/settings/{key}', [AppSettingController::class, 'show']);
 
+// Security Permits - Public Form Data (no auth required)
+Route::get('/security-permits/form-data', [SecurityPermitController::class, 'getFormData']);
+
 // Google OAuth Routes
 Route::post('/auth/google/mobile', [\App\Http\Controllers\Auth\SocialLoginController::class, 'handleGoogleMobileLogin']);
 
@@ -146,7 +149,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
     // Security Permits - User Routes
-    Route::get('/security-permits/form-data', [SecurityPermitController::class, 'getFormData']);
     Route::post('/security-permits', [SecurityPermitController::class, 'store']);
     Route::get('/security-permits/my', [SecurityPermitController::class, 'myPermits']);
     Route::get('/security-permits/{id}', [SecurityPermitController::class, 'show']);
