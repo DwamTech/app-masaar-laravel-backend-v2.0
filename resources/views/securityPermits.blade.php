@@ -68,14 +68,15 @@ async function fetchPermits(auto = false) {
         document.getElementById('permitsContent').innerHTML = `<div class="text-center py-5"><div class="spinner-border"></div></div>`;
     }
     try {
-        const res = await fetch(`${baseUrl}/api/all-security-permits`, {
+        const res = await fetch(`${baseUrl}/api/admin/security-permits`, {
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Accept': 'application/json'
             }
         });
         const data = await res.json();
-        permits = Array.isArray(data.permits) ? data.permits : [];
+        const list = data?.permits ?? [];
+        permits = Array.isArray(list) ? list : (Array.isArray(list?.data) ? list.data : []);
         renderPermits();
     } catch (e) {
         if (!auto) {
