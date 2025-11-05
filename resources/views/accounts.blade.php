@@ -1318,6 +1318,61 @@
              max-width: 80px;
              max-height: 60px;
          }
+         
+         /* تحسينات modal تفاصيل الحساب */
+         #detailsModal .modal-dialog {
+             max-width: 900px;
+         }
+         
+         #detailsModal .modal-body {
+             max-height: 70vh;
+             overflow-y: auto;
+             padding: 1.5rem;
+         }
+         
+         #detailsModal .border {
+             border: 1px solid #e9ecef !important;
+             transition: all 0.3s ease;
+         }
+         
+         #detailsModal .border:hover {
+             border-color: var(--primary-orange) !important;
+             box-shadow: 0 2px 8px rgba(252, 135, 0, 0.1);
+         }
+         
+         #detailsModal .form-label {
+             color: #495057;
+             font-size: 0.875rem;
+             margin-bottom: 0.5rem;
+         }
+         
+         #detailsModal .text-info {
+             color: var(--primary-orange) !important;
+         }
+         
+         #detailsModal .text-secondary {
+             color: #6c757d !important;
+         }
+         
+         #detailsModal .bg-light {
+             background-color: #f8f9fa !important;
+         }
+         
+         #detailsModal .rounded {
+             border-radius: 0.5rem !important;
+         }
+         
+         #detailsModal .details-image {
+             max-width: 120px;
+             max-height: 90px;
+             border-radius: 0.375rem;
+             cursor: pointer;
+             transition: transform 0.3s ease;
+         }
+         
+         #detailsModal .details-image:hover {
+             transform: scale(1.05);
+         }
      
  </style>
  @endsection
@@ -1432,7 +1487,7 @@
                 </button>
             </div>
             <div class="modal-body modern-modal-body" id="detailsContent">
-                {{-- سيتم تنظيم التفاصيل هنا بشكل حديث ومبدع --}}
+                {{-- سيتم عرض تفاصيل الحساب هنا بشكل بسيط ومنظم --}}
             </div>
         </div>
     </div>
@@ -1552,8 +1607,10 @@ async function fetchUsers(auto = false) {
 }
 
 function startPolling() {
-    if (pollingInterval) clearInterval(pollingInterval);
-    pollingInterval = setInterval(() => fetchUsers(true), 10000);
+    // تم إيقاف إعادة التحميل التلقائي
+    // if (pollingInterval) clearInterval(pollingInterval);
+    // pollingInterval = setInterval(() => fetchUsers(true), 10000);
+    console.log("Auto-refresh disabled. Use manual refresh button instead.");
 }
 
 function renderTabs() {
@@ -1713,44 +1770,138 @@ function renderUserDetails(user) {
     
     function renderValue(value, key) {
         if (value === null || value === undefined || value === '') {
-            return '<span class="details-empty">غير محدد</span>';
+            return '<span class="text-muted fst-italic">غير محدد</span>';
+        }
+        
+        // معالجة التواريخ - عرض اليوم والشهر والسنة فقط
+        if (key === 'created_at' || key === 'updated_at' || key.includes('date') || key.includes('_at')) {
+            try {
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                    return `<span class="text-primary">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                ${date.toLocaleDateString('ar-EG', { 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                })}
+                            </span>`;
+                }
+            } catch (e) {
+                // في حالة فشل تحويل التاريخ، عرض القيمة كما هي
+            }
+        }
+        
+        // معالجة القيم الرقمية (1/0) وتحويلها إلى true/false
+        if (typeof value === 'number' && (value === 1 || value === 0)) {
+            return value === 1 ? 
+                '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>true</span>' : 
+                '<span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>false</span>';
         }
         
         if (typeof value === 'boolean') {
-            return `<span class="details-badge ${value ? 'badge-success' : 'badge-danger'}">
-                        <i class="bi ${value ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>
-                        ${value ? 'نعم' : 'لا'}
-                    </span>`;
+            return value ? 
+                '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>true</span>' : 
+                '<span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>false</span>';
         }
         
         if (key === 'user_type') {
-            return `<span class="details-badge badge-info">
-                        <i class="bi bi-tags-fill"></i>
+            return `<span class="badge bg-primary">
+                        <i class="bi bi-tags"></i>
                         ${getTypeLabel(value)}
                     </span>`;
         }
         
         if (key === 'is_approved') {
             const approved = parseInt(value);
-            return `<span class="details-badge ${approved ? 'badge-success' : 'badge-warning'}">
-                        <i class="bi ${approved ? 'bi-check-circle-fill' : 'bi-clock-fill'}"></i>
-                        ${approved ? 'مُوافق عليه' : 'في انتظار الموافقة'}
-                    </span>`;
+            return approved === 1 ? 
+                '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>true</span>' : 
+                '<span class="badge bg-warning"><i class="bi bi-clock me-1"></i>false</span>';
         }
         
         // معالجة القيم المنطقية للحقول المتخصصة
         if (key === 'vat_included' || key === 'is_available_for_delivery' || key === 'is_available_for_rent' || key === 'tax_enabled') {
             const boolValue = parseInt(value) === 1;
-            return `<span class="details-badge ${boolValue ? 'badge-success' : 'badge-secondary'}">
-                        <i class="bi ${boolValue ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>
-                        ${boolValue ? 'نعم' : 'لا'}
-                    </span>`;
+            return boolValue ? 
+                '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>true</span>' : 
+                '<span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>false</span>';
         }
         
-        // معالجة القيم النقدية
+        // معالجة المصفوفات (cuisine_types, working_hours, payment_methods, rental_options)
+        if (Array.isArray(value)) {
+            if (key === 'cuisine_types') {
+                return value.map(type => 
+                    `<span class="badge bg-info me-1 mb-1">
+                        <i class="bi bi-tag-fill me-1"></i>${type}
+                    </span>`
+                ).join('');
+            }
+            
+            if (key === 'payment_methods') {
+                const methodLabels = {
+                    'cash': 'نقدي',
+                    'card': 'بطاقة ائتمان',
+                    'online': 'دفع إلكتروني',
+                    'bank_transfer': 'تحويل بنكي'
+                };
+                return value.map(method => 
+                    `<span class="badge bg-success me-1 mb-1">
+                        <i class="bi bi-credit-card me-1"></i>${methodLabels[method] || method}
+                    </span>`
+                ).join('');
+            }
+            
+            if (key === 'rental_options') {
+                const optionLabels = {
+                    'daily': 'يومي',
+                    'weekly': 'أسبوعي',
+                    'monthly': 'شهري',
+                    'hourly': 'بالساعة'
+                };
+                return value.map(option => 
+                    `<span class="badge bg-warning me-1 mb-1">
+                        <i class="bi bi-calendar-check me-1"></i>${optionLabels[option] || option}
+                    </span>`
+                ).join('');
+            }
+            
+            // معالجة عامة للمصفوفات الأخرى
+            return value.map(item => 
+                `<span class="badge bg-secondary me-1 mb-1">${item}</span>`
+            ).join('');
+        }
+        
+        // معالجة working_hours كـ object
+        if (key === 'working_hours' && typeof value === 'object' && value !== null) {
+            const dayLabels = {
+                'mon': 'الاثنين',
+                'tue': 'الثلاثاء', 
+                'wed': 'الأربعاء',
+                'thu': 'الخميس',
+                'fri': 'الجمعة',
+                'sat': 'السبت',
+                'sun': 'الأحد'
+            };
+            
+            let html = '<div class="working-hours-container">';
+            for (let day in value) {
+                if (value[day] && Array.isArray(value[day]) && value[day].length >= 2) {
+                    html += `<div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                                <span class="fw-bold text-primary">${dayLabels[day] || day}:</span>
+                                <span class="badge bg-success">
+                                    <i class="bi bi-clock me-1"></i>
+                                    ${value[day][0]} - ${value[day][1]}
+                                </span>
+                            </div>`;
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+        
+        // معالجة القيم النقدية - إزالة رمز الدولار واستخدام الجنيه فقط
         if (key.includes('cost') || key.includes('price')) {
-            return `<span class="details-value money">
-                        <i class="bi bi-currency-dollar"></i>
+            return `<span class="fw-bold text-success">
                         ${value} جنيه
                     </span>`;
         }
@@ -1758,11 +1909,10 @@ function renderUserDetails(user) {
         const isImage = typeof value === 'string' && value && /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(value);
         if (isImage) {
             const src = value.startsWith('http') ? value : value;
-            return `<div class="details-image-container">
-                        <img src="${src}" class="details-image" onclick="openImgFull('${src}')" alt="صورة">
-                        <div class="details-image-overlay">
-                            <i class="bi bi-zoom-in"></i>
-                        </div>
+            return `<div class="text-center">
+                        <img src="${src}" class="img-thumbnail" style="max-width: 80px; max-height: 80px; cursor: pointer;" 
+                             onclick="openImgFull('${src}')" alt="صورة">
+                        <div class="small text-muted mt-1">اضغط للتكبير</div>
                     </div>`;
         }
         
@@ -1770,7 +1920,7 @@ function renderUserDetails(user) {
             return renderNestedObject(value);
         }
         
-        return `<span class="details-value">${value}</span>`;
+        return `<span class="text-dark">${value}</span>`;
     }
     
     function renderNestedObject(obj) {
@@ -1792,26 +1942,31 @@ function renderUserDetails(user) {
         return html;
     }
     
-    // البناء الرئيسي للتفاصيل مع تنظيم محسن
-    let html = '<div class="details-container">';
+    // البناء الرئيسي للتفاصيل بشكل بسيط ومنظم
+    let html = '<div class="container-fluid">';
     
     // قسم المعلومات الأساسية
     const basicFields = ['name', 'email', 'phone', 'governorate', 'user_type', 'is_approved'];
-    html += '<div class="details-section"><h5 class="section-title"><i class="bi bi-person-circle"></i> المعلومات الأساسية</h5>';
+    html += '<div class="mb-4">';
+    html += '<h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-circle me-2"></i>المعلومات الأساسية</h6>';
+    html += '<div class="row g-3">';
+    
     basicFields.forEach(key => {
-        if (user.hasOwnProperty(key)) {
-            html += `<div class="details-item">
-                        <div class="details-label">
-                            <i class="bi ${getFieldIcon(key)}"></i>
-                            <span>${getFieldLabel(key)}</span>
-                        </div>
-                        <div class="details-content">
-                            ${renderValue(user[key], key)}
+        if (user.hasOwnProperty(key) && user[key] !== null && user[key] !== undefined && user[key] !== '') {
+            html += `<div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <label class="form-label fw-bold mb-2">
+                                <i class="bi ${getFieldIcon(key)} me-1 text-secondary"></i>
+                                ${getFieldLabel(key)}
+                            </label>
+                            <div class="mt-1">
+                                ${renderValue(user[key], key)}
+                            </div>
                         </div>
                     </div>`;
         }
     });
-    html += '</div>';
+    html += '</div></div>';
     
     // قسم التفاصيل المتخصصة
     if (user.restaurant_detail) {
@@ -1838,34 +1993,40 @@ function renderUserDetails(user) {
     
     // قسم معلومات النظام
     const systemFields = ['id', 'created_at', 'updated_at'];
-    html += '<div class="details-section"><h5 class="section-title"><i class="bi bi-gear"></i> معلومات النظام</h5>';
+    html += '<div class="mb-4">';
+    html += '<h6 class="fw-bold text-secondary mb-3"><i class="bi bi-gear me-2"></i>معلومات النظام</h6>';
+    html += '<div class="row g-3">';
+    
     systemFields.forEach(key => {
-        if (user.hasOwnProperty(key)) {
-            html += `<div class="details-item">
-                        <div class="details-label">
-                            <i class="bi ${getFieldIcon(key)}"></i>
-                            <span>${getFieldLabel(key)}</span>
-                        </div>
-                        <div class="details-content">
-                            ${renderValue(user[key], key)}
+        if (user.hasOwnProperty(key) && user[key] !== null && user[key] !== undefined && user[key] !== '') {
+            html += `<div class="col-md-6">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <label class="form-label fw-bold mb-2">
+                                <i class="bi ${getFieldIcon(key)} me-1 text-secondary"></i>
+                                ${getFieldLabel(key)}
+                            </label>
+                            <div class="mt-1">
+                                ${renderValue(user[key], key)}
+                            </div>
                         </div>
                     </div>`;
         }
     });
-    html += '</div>';
+    html += '</div></div>';
     
     html += '</div>';
     
     function renderSpecializedSection(sectionKey, sectionData, title, icon) {
-        let sectionHtml = `<div class="details-section specialized-section">
-                            <h5 class="section-title"><i class="bi ${icon}"></i> ${title}</h5>`;
+        let sectionHtml = `<div class="mb-4">
+                            <h6 class="fw-bold text-info mb-3"><i class="bi ${icon} me-2"></i>${title}</h6>`;
         
-        // تجميع الصور والبيانات النصية
-        const images = [];
+        // تجميع البيانات النصية والصور
         const textData = [];
+        const images = [];
         
         for (let key in sectionData) {
-            if (sectionData.hasOwnProperty(key) && sectionData[key] !== null && sectionData[key] !== undefined && sectionData[key] !== '') {
+            if (sectionData.hasOwnProperty(key) && sectionData[key] !== null && 
+                sectionData[key] !== undefined && sectionData[key] !== '') {
                 if (key.includes('image')) {
                     images.push({key, value: sectionData[key]});
                 } else {
@@ -1874,38 +2035,37 @@ function renderUserDetails(user) {
             }
         }
         
-        // عرض البيانات النصية أولاً
+        // عرض البيانات النصية
         if (textData.length > 0) {
-            sectionHtml += '<div class="text-data-grid">';
+            sectionHtml += '<div class="row g-3 mb-3">';
             textData.forEach(item => {
-                sectionHtml += `<div class="details-item">
-                                <div class="details-label">
-                                    <i class="bi ${getFieldIcon(item.key)}"></i>
-                                    <span>${getFieldLabel(item.key)}</span>
-                                </div>
-                                <div class="details-content">
-                                    ${renderValue(item.value, item.key)}
+                sectionHtml += `<div class="col-md-6">
+                                <div class="border rounded p-3 h-100">
+                                    <label class="form-label fw-bold mb-2">
+                                        <i class="bi ${getFieldIcon(item.key)} me-1 text-secondary"></i>
+                                        ${getFieldLabel(item.key)}
+                                    </label>
+                                    <div class="mt-1">
+                                        ${renderValue(item.value, item.key)}
+                                    </div>
                                 </div>
                             </div>`;
             });
             sectionHtml += '</div>';
         }
         
-        // عرض الصور في شبكة منفصلة
+        // عرض الصور إذا وجدت
         if (images.length > 0) {
-            sectionHtml += '<div class="images-section"><h6 class="images-title"><i class="bi bi-images"></i> الصور والمرفقات</h6>';
-            sectionHtml += '<div class="images-grid">';
+            sectionHtml += '<div class="mt-3">';
+            sectionHtml += '<h6 class="fw-bold text-muted mb-3"><i class="bi bi-images me-2"></i>الصور والمرفقات</h6>';
+            sectionHtml += '<div class="row g-3">';
             images.forEach(item => {
-                const src = item.value.startsWith('http') ? item.value : item.value;
-                sectionHtml += `<div class="image-card">
-                                <div class="image-label">${getFieldLabel(item.key)}</div>
-                                <div class="details-image-container enhanced">
-                                    <img src="${src}" class="details-image" onclick="openImgFull('${src}')" alt="${getFieldLabel(item.key)}">
-                                    <div class="details-image-overlay" onclick="openImgFull('${src}')">
-    <i class="bi bi-zoom-in"></i>
-    <span>اضغط للتكبير</span>
-</div>
-
+                sectionHtml += `<div class="col-md-4 col-lg-3">
+                                <div class="border rounded p-3 text-center">
+                                    <label class="form-label fw-bold mb-2 d-block">${getFieldLabel(item.key)}</label>
+                                    <div class="mt-1">
+                                        ${renderValue(item.value, item.key)}
+                                    </div>
                                 </div>
                             </div>`;
             });
@@ -2072,6 +2232,9 @@ function filterUsers(searchTerm) {
 function renderFilteredTable(filteredUsers) {
     let rows = filteredUsers.map(u => `
         <tr>
+            <td class="text-center">
+                <span class="badge bg-primary">${u.id}</span>
+            </td>
             <td>
                 <div class="user-info">
                     <div class="user-name">
@@ -2118,7 +2281,7 @@ function renderFilteredTable(filteredUsers) {
     `).join('');
     
     if(!rows) {
-        rows = `<tr><td colspan="5" class="text-center p-4">لا توجد نتائج تطابق البحث.</td></tr>`;
+        rows = `<tr><td colspan="6" class="text-center p-4">لا توجد نتائج تطابق البحث.</td></tr>`;
         document.getElementById('emptyState').classList.remove('d-none');
     } else {
         document.getElementById('emptyState').classList.add('d-none');
@@ -2126,9 +2289,16 @@ function renderFilteredTable(filteredUsers) {
 
     document.getElementById('accountsTable').innerHTML = `
         <div class="table-responsive">
+            <div class="d-flex justify-content-between align-items-center mb-3 px-3 pt-3">
+                <h5 class="mb-0">قائمة الحسابات</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="fetchUsers(false)" title="تحديث البيانات">
+                    <i class="bi bi-arrow-clockwise me-1"></i>تحديث
+                </button>
+            </div>
             <table class="table table-hover align-middle modern-accounts-table">
                 <thead class="table-light">
                     <tr>
+                        <th class="text-center id-column"><i class="bi bi-hash me-2"></i>المعرف</th>
                         <th class="name-column"><i class="bi bi-person-circle me-2"></i>الاسم والبريد</th>
                         <th class="phone-column"><i class="bi bi-telephone me-2"></i>الهاتف</th>
                         <th class="type-column"><i class="bi bi-tag me-2"></i>النوع</th>

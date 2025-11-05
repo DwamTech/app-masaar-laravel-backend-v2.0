@@ -722,12 +722,7 @@ h2.mb-4 {
                 <span class="badge bg-light text-dark ms-2" id="rents-count">0</span>
             </button>
         </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-other" onclick="switchTab('other')">
-                طلبات أخرى
-                <span class="badge bg-light text-dark ms-2" id="other-count">0</span>
-            </button>
-        </li>
+       
     </ul>
 </div>
 
@@ -833,6 +828,7 @@ async function fetchAppointments(auto = false) {
     }
 
     try {
+        console.log('[Appointments] Fetch URL:', `${baseUrl}/api/appointments`);
         const res = await fetch(`${baseUrl}/api/appointments`, {
             headers: { 
                 'Authorization': 'Bearer ' + token, 
@@ -845,6 +841,7 @@ async function fetchAppointments(auto = false) {
         }
         
         const data = await res.json();
+        console.log('[Appointments] Loaded count:', Array.isArray(data.appointments) ? data.appointments.length : 0);
         let newAppointments = Array.isArray(data.appointments) ? data.appointments : [];
         
         // ترتيب المواعيد من الأحدث للأقدم
@@ -870,6 +867,7 @@ async function fetchAppointments(auto = false) {
 }
 
 function renderAppointments(newAppointments) {
+    console.log('[Appointments] Render count:', newAppointments.length);
     const container = document.getElementById('ordersTabContent');
     
     if (!newAppointments.length) {
@@ -1010,6 +1008,7 @@ async function fetchRents(auto = false) {
     }
 
     try {
+        console.log('[Rents] Fetch URL:', `${baseUrl}/api/admin/service-requests/all`);
         const res = await fetch(`${baseUrl}/api/admin/service-requests/all`, {
             headers: { 
                 'Authorization': 'Bearer ' + token, 
@@ -1023,7 +1022,9 @@ async function fetchRents(auto = false) {
         
         const data = await res.json();
         const allRequests = Array.isArray(data.all_requests) ? data.all_requests : [];
+        console.log('[Rents] Loaded all_requests:', allRequests.length);
         let newRents = allRequests.filter(r => r.type === 'rent');
+        console.log('[Rents] Filtered rents:', newRents.length);
         
         // ترتيب الطلبات من الأحدث للأقدم
         newRents.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -1048,6 +1049,7 @@ async function fetchRents(auto = false) {
 }
 
 function renderRents(newRents) {
+    console.log('[Rents] Render count:', newRents.length);
     const container = document.getElementById('ordersTabContent');
     
     if (!newRents.length) {
@@ -1373,6 +1375,7 @@ async function updateAppointmentStatus(id, status) {
         });
         
         if (res.ok) {
+            console.log('[Rents] Approve response OK:', res.status);
             // 3. Update the local data model
             const updatedApp = appointments.find(a => a.id === id);
             if (updatedApp) {
@@ -1443,7 +1446,8 @@ async function approveRent(id) {
     const token = localStorage.getItem('token');
     
     try {
-        const res = await fetch(`${baseUrl}/api/admin/service-requests/${id}/approve`, {
+        console.log('[Rents] Approve URL:', `${baseUrl}/api/service-requests/${id}/approve`);
+        const res = await fetch(`${baseUrl}/api/service-requests/${id}/approve`, {
             method: 'POST',
             headers: { 
                 'Authorization': 'Bearer ' + token, 
@@ -1453,6 +1457,7 @@ async function approveRent(id) {
         });
         
         if (res.ok) {
+            console.log('[Rents] Approve response OK:', res.status);
             // 3. Update the local data model
             const updatedRent = rents.find(r => r.id === id);
             if (updatedRent) {
@@ -1518,7 +1523,8 @@ async function rejectRent(id) {
     const token = localStorage.getItem('token');
     
     try {
-        const res = await fetch(`${baseUrl}/api/admin/service-requests/${id}/reject`, {
+        console.log('[Rents] Reject URL:', `${baseUrl}/api/service-requests/${id}/reject`);
+        const res = await fetch(`${baseUrl}/api/service-requests/${id}/reject`, {
             method: 'POST',
             headers: { 
                 'Authorization': 'Bearer ' + token, 
@@ -1528,6 +1534,7 @@ async function rejectRent(id) {
         });
         
         if (res.ok) {
+            console.log('[Rents] Reject response OK:', res.status);
             // 3. Update the local data model (remove the item)
             const rentIndex = rents.findIndex(r => r.id === id);
             if (rentIndex !== -1) {

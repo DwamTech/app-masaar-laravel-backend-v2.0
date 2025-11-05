@@ -51,10 +51,11 @@
         }
         
         .sidebar .logo-section {
-            padding: 2rem 1.5rem;
+            /* padding: 1rem .5rem; */
+            padding-top: 1rem;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 1rem;
+            /* margin-bottom: 1rem; */
             position: relative;
             z-index: 1;
             display: flex;
@@ -70,7 +71,7 @@
             height: 80px;
             background: var(--white);
             border-radius: 20px;
-            margin: 0 auto 1rem;
+            /* margin: 0 auto 1rem; */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -181,7 +182,9 @@
     width: calc(100% - 280px); /* حساب العرض المتبقي */
 }
         .content-wrapper {
-            padding: 2rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            padding-top: .5rem;
             max-width: 1400px;
             margin: 0 auto;
         }
@@ -801,6 +804,18 @@
    .nav-pills{
     justify-content: center;
    }
+    .btn-outline-primary {
+        color: var(--primary-orange);
+        border-color: var(--primary-orange);
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    .btn-outline-primary:hover {
+        background: var(--primary-orange);
+        border-color: var(--primary-orange);
+    }
+   
     
     /* الرسوم المتحركة الجديدة */
     @keyframes gradientShift {
@@ -994,6 +1009,7 @@
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @stack('styles')
 
 </head>
 <body>
@@ -1018,10 +1034,10 @@
                         <h2 style="margin: 0 0 6px 0; font-size: 2rem; font-weight: 800; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1.2;">مسار</h2>
                         
                         <!-- Subtitle -->
-                        <h5 style="margin: 0 0 12px 0; font-size: 1.1rem; font-weight: 500; color: rgba(255,255,255,0.9); line-height: 1.3;">لوحة التحكم</h5>
+                        <h5 style="margin: 0 0 12px 0; font-size: .8rem; font-weight: 500; color: rgba(255,255,255,0.9); line-height: 1;">لوحة التحكم</h5>
                         
                         <!-- Email -->
-                        <div id="userEmail" style="font-size: 0.9rem; color: rgba(255,255,255,0.8); font-weight: 400; line-height: 1.4;">
+                        <div id="userEmail" style="font-size: 0.9rem; color: rgba(255,255,255,0.8); font-weight: 400; line-height: 1;">
                             <!-- سيتم عرض الإيميل هنا -->
                         </div>
                     </div>
@@ -1078,12 +1094,7 @@
                         معلومات التطبيق
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="/systemOpsTracking" class="nav-link">
-                        <i class="bi bi-activity"></i>
-                        تتبع عمليات النظام
-                    </a>
-                </li>
+              
             </ul>
 
             <button id="logoutBtn" class="logout-btn">
