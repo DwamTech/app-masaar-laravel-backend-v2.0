@@ -9,8 +9,8 @@ Route::get('/login', function () {
     return view('login');
 })->name('login');
 Route::get('/', function () {
-    return view('dashboard');
-});
+    return view('landing');
+})->name('landing');
 // صفحة الداشبورد
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -63,23 +63,3 @@ Route::post('/otp/reset-password', [OtpAuthController::class, 'resetPassword'])-
 // Google OAuth Routes
 Route::get('auth/google/redirect', [SocialLoginController::class, 'redirectToGoogle'])->name('google.redirect');
 Route::get('auth/google/callback', [SocialLoginController::class, 'handleGoogleCallback'])->name('google.callback');
-Route::get('/systemOpsTracking', function () { return view('systemOpsTracking'); })->name('systemOpsTracking');
-
-// Preview route for OTP email template (development use)
-Route::get('/preview/email/otp', function () {
-    return view('emails.verify-email-otp', [
-        'otp' => '837415',
-        'expiryMinutes' => 11,
-        'userName' => 'eldo2d!'
-    ]);
-})->name('preview.email.otp');
-
-// Preview route for Password Reset OTP email (development use)
-Route::get('/preview/email/password-reset', function () {
-    return view('emails.password-reset-otp', [
-        'otp' => '318642',
-        'expiryMinutes' => 10,
-        'userName' => 'مستخدم'
-    ]);
-})->name('preview.email.password-reset');
-
