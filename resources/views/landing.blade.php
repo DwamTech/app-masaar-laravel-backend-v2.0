@@ -554,7 +554,7 @@
                 <a href="#"><i class="fab fa-linkedin"></i></a>
             </div>
             <hr class="my-4" style="opacity: 0.3;">
-            <p class="mb-0">&copy; 2025 شركة دوام. جميع الحقوق محفوظة.</p>
+            
         </div>
     </footer>
 
