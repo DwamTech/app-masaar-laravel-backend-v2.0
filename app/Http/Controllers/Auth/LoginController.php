@@ -55,6 +55,11 @@ class LoginController extends Controller
 
         if (!$isApiRequest) {
             Auth::login($user);
+            // أنشئ توكن لاستخدام واجهات API من الواجهة الإدارية
+            $token = $user->createToken('api-token')->plainTextToken;
+            // خزّن التوكن والمستخدم في السيشن ليتم نقله إلى localStorage من التخطيط
+            $request->session()->put('api_token', $token);
+            $request->session()->put('user', $user);
             return redirect()->route('dashboard');
         }
 

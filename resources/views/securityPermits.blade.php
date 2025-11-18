@@ -68,14 +68,13 @@ async function fetchPermits(auto = false) {
         document.getElementById('permitsContent').innerHTML = `<div class="text-center py-5"><div class="spinner-border"></div></div>`;
     }
     try {
-        const res = await fetch(`${baseUrl}/api/all-security-permits`, {
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Accept': 'application/json'
-            }
-        });
+        const headers = { 'Accept': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch(`${baseUrl}/api/all-security-permits`, { headers });
         const data = await res.json();
-        permits = Array.isArray(data.permits) ? data.permits : [];
+        // يدعم كلا الشكلين: مصفوفة مباشرة أو بيانات مُرقّمة (data)
+        permits = Array.isArray(data.permits) ? data.permits : (Array.isArray(data.permits?.data) ? data.permits.data : []);
         renderPermits();
     } catch (e) {
         if (!auto) {
@@ -85,125 +84,184 @@ async function fetchPermits(auto = false) {
 }
 
 function renderPermits() {
+    const container = document.getElementById('permitsContent');
     if (!permits.length) {
-        document.getElementById('permitsContent').innerHTML = `<div class="alert alert-warning">لا توجد تصاريح حتى الآن.</div>`;
+        container.innerHTML = `<div class="alert alert-warning">لا توجد تصاريح حتى الآن.</div>`;
         return;
     }
-    let html = `<div class="row g-4">`;
-    permits.forEach(permit => {
-        html += `<div class="col-md-6 col-xl-4">
-            <div class="card border-0 shadow-lg h-100 position-relative overflow-hidden" style="border-radius: 15px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.08)'">
-                <div class="position-absolute top-0 end-0 m-3">
-                    <div class="badge bg-gradient" style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); font-size: 0.9rem; padding: 8px 12px; border-radius: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">#${permit.id}</div>
-                </div>
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3 mt-2">
-                        <div class="me-3">
-                            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                <i class="fas fa-passport text-primary" style="font-size: 1.2rem;"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1 text-dark fw-bold text-center">مصري</h5>
-                        </div>
-                    </div>
-                    
-                    <!-- تاريخ السفر في وسط البطاقة -->
-                    <div class="text-center mb-3 p-3 bg-gradient rounded-3" style="background: linear-gradient(45deg, #f8f9fa 0%, #e9ecef 100%); border: 2px solid #dee2e6;">
-                        <div class="d-flex align-items-center justify-content-center mb-2">
-                            <i class="fas fa-calendar-alt text-primary me-2" style="font-size: 1.2rem;"></i>
-                            <span class="fw-bold text-dark" style="font-size: 1.1rem;">تاريخ السفر</span>
-                        </div>
-                        <div class="text-primary fw-bold" style="font-size: 1.3rem;">${permit.travel_date}</div>
-                    </div>
-                    
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <div class="bg-light rounded-3 p-3 text-center">
-                                <div class="text-primary fw-bold" style="font-size: 1.5rem;">${permit.people_count}</div>
-                                <div class="text-muted small">عدد الأشخاص</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="bg-light rounded-3 p-3 text-center">
-                                <div class="text-success fw-bold" style="font-size: 0.9rem;">${getPermitStatusLabel(permit.status)}</div>
-                                <div class="text-muted small">الحالة</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-map-marker-alt text-warning me-2"></i>
-                            <span class="fw-semibold text-dark">قادمين من:</span>
-                        </div>
-                        <div class="ps-3 text-muted">${permit.coming_from}</div>
-                    </div>
-                    
-                    ${permit.notes ? `<div class="mb-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-sticky-note text-info me-2"></i>
-                            <span class="fw-semibold text-dark">ملاحظات:</span>
-                        </div>
-                        <div class="ps-3 text-muted small bg-light rounded-3 p-2">${permit.notes}</div>
-                    </div>` : ''}
-                    
-                    <div class="border-top pt-3 mb-3">
-                        <h6 class="fw-bold text-dark mb-3"><i class="fas fa-images text-primary me-2"></i>المستندات المرفقة</h6>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="small text-muted mb-2">جواز السفر</div>
-                                    ${permit.passport_image ? `<div class="position-relative d-inline-block">
-                                        <img src="${permit.passport_image}" class="img-thumbnail" style="width: 80px; height: 60px; object-fit: cover; cursor: pointer; border-radius: 8px; transition: transform 0.2s ease;" onclick="openImgFull('${permit.passport_image}')" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                        <div class="position-absolute top-0 end-0 bg-success rounded-circle" style="width: 15px; height: 15px; margin: -5px;"></div>
-                                    </div>` : '<div class="text-muted small bg-light rounded-3 p-2">لا يوجد</div>'}
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="small text-muted mb-2">مستند آخر</div>
-                                    ${permit.other_document_image ? `<div class="position-relative d-inline-block">
-                                        <img src="${permit.other_document_image}" class="img-thumbnail" style="width: 80px; height: 60px; object-fit: cover; cursor: pointer; border-radius: 8px; transition: transform 0.2s ease;" onclick="openImgFull('${permit.other_document_image}')" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                        <div class="position-absolute top-0 end-0 bg-success rounded-circle" style="width: 15px; height: 15px; margin: -5px;"></div>
-                                    </div>` : '<div class="text-muted small bg-light rounded-3 p-2">لا يوجد</div>'}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="border-top pt-3">
-                        <h6 class="fw-bold text-dark mb-3"><i class="fas fa-user text-success me-2"></i>بيانات صاحب التصريح</h6>
-                        <div class="bg-light rounded-3 p-3">
-                            <div class="row g-2 small">
-                                <div class="col-12"><i class="fas fa-user me-2 text-primary"></i><span class="fw-semibold">${permit.user?.name ?? '-'}</span></div>
-                                ${permit.user?.phone ? `<div class="col-12"><i class="fas fa-phone me-2 text-success"></i>${permit.user.phone}</div>` : ''}
-                                ${permit.user?.email ? `<div class="col-12"><i class="fas fa-envelope me-2 text-info"></i>${permit.user.email}</div>` : ''}
-                                ${permit.user?.governorate ? `<div class="col-12"><i class="fas fa-map-marker-alt me-2 text-warning"></i>${permit.user.governorate}</div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3 pt-2 border-top">
-                        <div class="row g-2 small text-muted">
-                            <div class="col-6">
-                                <i class="fas fa-plus-circle me-1"></i>
-                                <span>أنشئ في:</span><br>
-                                <span class="fw-semibold">${formatDateTime(permit.created_at)}</span>
-                            </div>
-                            <div class="col-6">
-                                <i class="fas fa-edit me-1"></i>
-                                <span>آخر تحديث:</span><br>
-                                <span class="fw-semibold">${formatDateTime(permit.updated_at)}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
+    const header = `
+      <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th class="text-center">#</th>
+              <th>المستخدم</th>
+              <th>الهاتف</th>
+              <th>البريد</th>
+              <th>قادمين من</th>
+              <th class="text-center">عدد الأشخاص</th>
+              <th>تاريخ السفر</th>
+              <th>الحالة</th>
+              <th>الدفع</th>
+              <th>أُنشئ</th>
+              <th class="text-center">إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    const rows = permits.map(p => {
+        const user = p.user || {};
+        const travelDate = p.travel_date ? new Date(p.travel_date).toLocaleDateString('ar-EG') : '—';
+        const createdAt = p.created_at ? new Date(p.created_at).toLocaleString('ar-EG') : '—';
+        return `
+          <tr>
+            <td class="text-center">${p.id}</td>
+            <td>${user.name || '—'}</td>
+            <td>${user.phone || '—'}</td>
+            <td>${user.email || '—'}</td>
+            <td>${p.coming_from || '—'}</td>
+            <td class="text-center">${p.people_count ?? '—'}</td>
+            <td>${travelDate}</td>
+            <td>${getPermitStatusLabel(p.status)}</td>
+            <td>${getPaymentStatusLabel(p.payment_status)}</td>
+            <td>${createdAt}</td>
+            <td class="text-center">
+              ${getActionButtons(p)}
+            </td>
+          </tr>
+        `;
+    }).join('');
+
+    const footer = `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    container.innerHTML = header + rows + footer;
+}
+
+function getActionButtons(p) {
+    const docsBtn = `<button class="btn btn-sm btn-primary" onclick='openDocumentsModal(${JSON.stringify(p)})'>عرض المستندات</button>`;
+    const acceptBtn = `<button class="btn btn-sm btn-success me-1" onclick="updatePermitStatus(${p.id}, 'approved')">قبول</button>`;
+    const rejectBtn = `<button class="btn btn-sm btn-danger me-1" onclick="updatePermitStatus(${p.id}, 'rejected')">رفض</button>`;
+
+    let actions = '';
+    if (p.status === 'approved') {
+        actions = rejectBtn;
+    } else if (p.status === 'rejected') {
+        actions = acceptBtn;
+    } else {
+        actions = acceptBtn + rejectBtn;
+    }
+    return actions + docsBtn;
+}
+
+async function updatePermitStatus(permitId, nextStatus) {
+    try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Accept': 'application/json', 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        // المسار الأساسي للأدمن
+        const adminUrl = `${baseUrl}/api/admin/security-permits/${permitId}/status`;
+        let res = await fetch(adminUrl, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ status: nextStatus })
+        });
+
+        // في حال عدم الصلاحية، جرّب المسار القديم المحمي بالتوكن
+        if (res.status === 401 || res.status === 403) {
+            const legacyUrl = `${baseUrl}/api/security-permits/${permitId}/status`;
+            res = await fetch(legacyUrl, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ status: nextStatus })
+            });
+        }
+
+        const data = await res.json();
+        if (!res.ok || data.status === false) {
+            alert(data.message || 'تعذر تحديث الحالة. تأكد من صلاحيات الأدمن.');
+            return;
+        }
+
+        // تحديث العنصر محليًا وإعادة الرسم
+        const updated = data.permit || null;
+        if (updated) {
+            permits = permits.map(x => x.id === updated.id ? updated : x);
+        } else {
+            // fallback: حدث فقط الحالة محليًا
+            permits = permits.map(x => x.id === permitId ? { ...x, status: nextStatus } : x);
+        }
+        renderPermits();
+    } catch (e) {
+        alert('حدث خطأ أثناء تحديث الحالة');
+    }
+}
+
+function resolveImageUrl(path) {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `${window.location.origin}/storage/${path}`;
+}
+
+function openDocumentsModal(permit) {
+    const imgs = [];
+    if (permit.passport_image) imgs.push({label: 'صورة الجواز', src: resolveImageUrl(permit.passport_image)});
+    if (permit.other_document_image) imgs.push({label: 'مستند إضافي', src: resolveImageUrl(permit.other_document_image)});
+    if (Array.isArray(permit.residence_images)) {
+        permit.residence_images.forEach((img, idx) => imgs.push({label: `إقامة ${idx+1}` , src: resolveImageUrl(img)}));
+    }
+
+    if (!imgs.length) {
+        alert('لا توجد مستندات مرفقة لهذا الطلب');
+        return;
+    }
+
+    const gallery = imgs.map(i => `
+      <div class="col-12 col-md-6 col-xl-4 mb-3">
+        <div class="border rounded p-2 h-100">
+          <div class="small text-muted mb-2">${i.label}</div>
+          <img src="${i.src}" alt="${i.label}" class="img-fluid rounded" style="cursor:pointer" onclick="openImgFull('${i.src}')" />
+        </div>
+      </div>
+    `).join('');
+
+    const modalHtml = `
+      <div class="modal fade" id="docsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">المستندات المرفقة لطلب #${permit.id}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>`;
-    });
-    html += `</div>`;
-    document.getElementById('permitsContent').innerHTML = html;
+            <div class="modal-body">
+              <div class="row">${gallery}</div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const holderId = 'docs-modal-holder';
+    let holder = document.getElementById(holderId);
+    if (!holder) {
+        holder = document.createElement('div');
+        holder.id = holderId;
+        document.body.appendChild(holder);
+    }
+    holder.innerHTML = modalHtml;
+
+    const modalEl = document.getElementById('docsModal');
+    const bsModal = new bootstrap.Modal(modalEl);
+    bsModal.show();
 }
 
 function getPermitStatusLabel(status) {
@@ -212,6 +270,15 @@ function getPermitStatusLabel(status) {
         case 'approved': return `<span class="badge bg-success">مقبول</span>`;
         case 'rejected': return `<span class="badge bg-danger">مرفوض</span>`;
         default: return `<span class="badge bg-light">${status}</span>`;
+    }
+}
+
+function getPaymentStatusLabel(status) {
+    switch (status) {
+        case 'paid': return `<span class="badge bg-success">مدفوع</span>`;
+        case 'unpaid': return `<span class="badge bg-danger">غير مدفوع</span>`;
+        case 'pending': return `<span class="badge bg-warning text-dark">قيد الدفع</span>`;
+        default: return `<span class="badge bg-light">${status || '-'}</span>`;
     }
 }
 

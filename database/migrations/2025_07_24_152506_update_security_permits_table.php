@@ -12,7 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('security_permits', function (Blueprint $table) {
+        $driver = Schema::getConnection()->getDriverName();
+        Schema::table('security_permits', function (Blueprint $table) use ($driver) {
             // إضافة الحقول الجديدة بشكل آمن (لا تُنشأ إذا كانت موجودة)
             if (!Schema::hasColumn('security_permits', 'country_id')) {
                 $table->foreignId('country_id')->nullable()->after('coming_from')->constrained('countries')->onDelete('set null');
@@ -22,7 +23,7 @@ return new class extends Migration
             }
 
             // تحديث حقل الحالة (يبقى كما هو)
-            if (Schema::hasColumn('security_permits', 'status')) {
+            if (Schema::hasColumn('security_permits', 'status') && $driver !== 'sqlite') {
                 $table->enum('status', ['new', 'pending', 'approved', 'rejected', 'expired'])->default('new')->change();
             }
 
@@ -53,31 +54,38 @@ return new class extends Migration
             }
 
             // إضافة فهارس بشكل آمن لتجنب ازدواجية الأسماء
-            $dbName = DB::getDatabaseName();
-            $hasStatusCreatedIndex = DB::table('information_schema.statistics')
-                ->where('table_schema', $dbName)
-                ->where('table_name', 'security_permits')
-                ->where('index_name', 'security_permits_status_created_at_index')
-                ->exists();
-            if (!$hasStatusCreatedIndex) {
+            if ($driver !== 'sqlite') {
+                $dbName = DB::getDatabaseName();
+                $hasStatusCreatedIndex = DB::table('information_schema.statistics')
+                    ->where('table_schema', $dbName)
+                    ->where('table_name', 'security_permits')
+                    ->where('index_name', 'security_permits_status_created_at_index')
+                    ->exists();
+                if (!$hasStatusCreatedIndex) {
+                    $table->index(['status', 'created_at'], 'security_permits_status_created_at_index');
+                }
+
+                $hasPaymentStatusIndex = DB::table('information_schema.statistics')
+                    ->where('table_schema', $dbName)
+                    ->where('table_name', 'security_permits')
+                    ->where('index_name', 'security_permits_payment_status_index')
+                    ->exists();
+                if (!$hasPaymentStatusIndex) {
+                    $table->index(['payment_status'], 'security_permits_payment_status_index');
+                }
+
+                $hasUserStatusIndex = DB::table('information_schema.statistics')
+                    ->where('table_schema', $dbName)
+                    ->where('table_name', 'security_permits')
+                    ->where('index_name', 'security_permits_user_id_status_index')
+                    ->exists();
+                if (!$hasUserStatusIndex) {
+                    $table->index(['user_id', 'status'], 'security_permits_user_id_status_index');
+                }
+            } else {
+                // في SQLite، ننشئ الفهارس مباشرة بدون التحقق من information_schema
                 $table->index(['status', 'created_at'], 'security_permits_status_created_at_index');
-            }
-
-            $hasPaymentStatusIndex = DB::table('information_schema.statistics')
-                ->where('table_schema', $dbName)
-                ->where('table_name', 'security_permits')
-                ->where('index_name', 'security_permits_payment_status_index')
-                ->exists();
-            if (!$hasPaymentStatusIndex) {
                 $table->index(['payment_status'], 'security_permits_payment_status_index');
-            }
-
-            $hasUserStatusIndex = DB::table('information_schema.statistics')
-                ->where('table_schema', $dbName)
-                ->where('table_name', 'security_permits')
-                ->where('index_name', 'security_permits_user_id_status_index')
-                ->exists();
-            if (!$hasUserStatusIndex) {
                 $table->index(['user_id', 'status'], 'security_permits_user_id_status_index');
             }
         });

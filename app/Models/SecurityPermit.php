@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Support\Notifier;
+use Illuminate\Support\Facades\Log;
 
 class SecurityPermit extends Model
 {
@@ -152,6 +153,25 @@ class SecurityPermit extends Model
      */
     protected function sendStatusNotification($oldStatus, $newStatus)
     {
+        // إذا لم يكن هناك مستخدم مرتبط (حالة بيانات قديمة أو حذف المستخدم)، نتخطى الإشعار لتجنب الأخطاء
+        if (!$this->user) {
+            // تسجيل تحذير للمراجعة دون إيقاف العملية
+            if (function_exists('logger')) {
+                logger()->warning('SecurityPermit: Skipping notification, user relation missing', [
+                    'permit_id' => $this->id,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                ]);
+            } else {
+                Log::warning('SecurityPermit: Skipping notification, user relation missing', [
+                    'permit_id' => $this->id,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                ]);
+            }
+            return;
+        }
+
         $messages = [
             'pending' => [
                 'title' => 'طلب التصريح الأمني قيد المراجعة',

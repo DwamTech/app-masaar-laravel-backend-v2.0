@@ -38,11 +38,14 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\OtpAuthController;
 use App\Http\Controllers\RealEstateOfficesDetailController;
 use App\Http\Controllers\FavoritesController;
+use App\Http\Controllers\AdminNotificationController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
+use Minishlink\WebPush\WebPush;
+use Minishlink\WebPush\Subscription;
 
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
@@ -64,6 +67,39 @@ Route::get('/settings/{key}', [AppSettingController::class, 'show']);
 
 // Security Permits - Public Form Data (no auth required)
 Route::get('/security-permits/form-data', [SecurityPermitController::class, 'getFormData']);
+// Security Permits - Public listing for dashboard view
+Route::get('/all-security-permits', function () {
+    $permits = \App\Models\SecurityPermit::with(['user'])
+        ->latest()
+        ->get([
+            'id',
+            'user_id',
+            'travel_date',
+            'nationality',
+            'nationality_id',
+            'people_count',
+            'coming_from',
+            'country_id',
+            'passport_image',
+            'other_document_image',
+            'residence_images',
+            'payment_method',
+            'individual_fee',
+            'total_amount',
+            'payment_status',
+            'payment_reference',
+            'status',
+            'notes',
+            'admin_notes',
+            'processed_at',
+            'created_at',
+            'updated_at',
+        ]);
+
+    return response()->json([
+        'permits' => $permits,
+    ]);
+});
 
 // Google OAuth Routes
 Route::post('/auth/google/mobile', [\App\Http\Controllers\Auth\SocialLoginController::class, 'handleGoogleMobileLogin']);
@@ -383,6 +419,151 @@ Route::middleware('auth:sanctum')->group(function () {
             'message' => 'تم تفعيل استقبال إشعارات الدفع لهذا الحساب.',
         ]);
     });
+
+    // Web Push endpoints
+    Route::get('/webpush/public-key', function (Request $r) {
+        $user = $r->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $key = env('WEB_PUSH_PUBLIC_KEY', '');
+        return response()->json(['publicKey' => $key]);
+    });
+
+    Route::post('/webpush/subscribe', function (Request $r) {
+        $user = $r->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $r->validate([
+            'endpoint' => 'required|string',
+            'p256dh' => 'required|string',
+            'auth' => 'required|string',
+            'expirationTime' => 'nullable|numeric',
+        ]);
+
+        DB::table('web_push_subscriptions')->updateOrInsert(
+            ['user_id' => $user->id, 'endpoint' => $r->input('endpoint')],
+            [
+                'p256dh' => $r->input('p256dh'),
+                'auth' => $r->input('auth'),
+                'expiration_time' => $r->input('expirationTime'),
+                'is_enabled' => 1,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        return response()->json(['status' => true]);
+    });
+
+    // إرسال إشعار تجريبي إلى جميع حسابات الأدمن عبر Web Push
+    Route::post('/webpush/test-admin', function (Request $r) {
+        $user = $r->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+        if (($user->user_type ?? null) !== 'admin') {
+            return response()->json(['message' => 'Forbidden: Admins only'], 403);
+        }
+
+        $publicKey = env('WEB_PUSH_PUBLIC_KEY');
+        $privateKey = env('WEB_PUSH_PRIVATE_KEY');
+        $simulate = app()->environment('local') || (bool)env('WEB_PUSH_LOCAL_SIMULATION', false);
+        if (!$publicKey || !$privateKey) {
+            if ($simulate) {
+                // محاكاة محلية بدون مفاتيح فابيد
+                $subs = DB::table('web_push_subscriptions')
+                    ->join('users', 'users.id', '=', 'web_push_subscriptions.user_id')
+                    ->where('users.user_type', 'admin')
+                    ->where('web_push_subscriptions.is_enabled', 1)
+                    ->select('web_push_subscriptions.*')
+                    ->get();
+                return response()->json([
+                    'status' => true,
+                    'simulate' => true,
+                    'attempts' => $subs->count(),
+                    'successes' => $subs->count(),
+                    'errors' => [],
+                    'note' => 'Local simulation: VAPID keys not set, no push requests sent.',
+                ]);
+            }
+            return response()->json([
+                'status' => false,
+                'message' => 'WEB_PUSH_PUBLIC_KEY/WEB_PUSH_PRIVATE_KEY غير مضبوطة في ملف البيئة.'
+            ], 500);
+        }
+
+        $webPush = new WebPush([
+            'VAPID' => [
+                'subject' => env('APP_URL', 'https://msar.app'),
+                'publicKey' => $publicKey,
+                'privateKey' => $privateKey,
+            ],
+        ]);
+
+        // اجلب كل اشتراكات الأدمن المفعّلة
+        $subs = DB::table('web_push_subscriptions')
+            ->join('users', 'users.id', '=', 'web_push_subscriptions.user_id')
+            ->where('users.user_type', 'admin')
+            ->where('web_push_subscriptions.is_enabled', 1)
+            ->select('web_push_subscriptions.*')
+            ->get();
+
+        if ($subs->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا توجد اشتراكات Web Push لحسابات الأدمن. فعِّل الإشعارات من صفحة الإشعارات.'
+            ], 404);
+        }
+
+        $payload = json_encode([
+            'title' => 'إشعار تجريبي للأدمن',
+            'body'  => 'تم إرسال هذا الإشعار من النظام لاختبار الويب بوش.',
+            'url'   => url('/notifications'),
+            // يمكن تمرير أيقونة؛ عامل الخدمة لديه masar.png افتراضيًا
+        ], JSON_UNESCAPED_UNICODE);
+
+        $attempts = 0;
+        $successes = 0;
+        $errors = [];
+
+        foreach ($subs as $s) {
+            $attempts++;
+            try {
+                $subscription = Subscription::create([
+                    'endpoint' => $s->endpoint,
+                    'publicKey' => $s->p256dh,
+                    'authToken' => $s->auth,
+                    'contentEncoding' => 'aes128gcm',
+                ]);
+
+                $report = $webPush->sendOneNotification($subscription, $payload);
+                if ($report->isSuccess()) {
+                    $successes++;
+                } else {
+                    $errors[] = [
+                        'endpoint' => $s->endpoint,
+                        'error' => $report->getReason(),
+                    ];
+                }
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'endpoint' => $s->endpoint,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'status' => true,
+            'attempts' => $attempts,
+            'successes' => $successes,
+            'errors' => $errors,
+        ]);
+    });
     // ===== End Device Tokens & Push Prefs =====
 
     // ===== Favorites (User-specific) =====
@@ -414,12 +595,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function () {
+    // Unified System Requests (Admin)
+    Route::get('/system-requests', [\App\Http\Controllers\Admin\AllSystemRequestsController::class, 'index']);
+
     Route::get('/service-requests', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'index']);
     Route::post('/service-requests/{id}/approve', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'approve']);
     Route::post('/service-requests/{id}/reject', [\App\Http\Controllers\Admin\ServiceRequestAdminController::class, 'reject']);
     
     // Properties - Admin Routes
     Route::get('/properties', [PropertyController::class, 'adminIndex']);
+    Route::post('/properties', [PropertyController::class, 'adminStore']);
+    Route::put('/properties/{id}', [PropertyController::class, 'adminUpdate']);
     Route::delete('/properties/{id}', [PropertyController::class, 'adminDestroy']);
     Route::patch('/properties/{id}/feature', [PropertyController::class, 'toggleFeatured']);
 
@@ -464,6 +650,10 @@ Route::middleware(['auth:sanctum', 'is_admin'])->prefix('admin')->group(function
 
     // Cars - Admin review/approve
     Route::patch('/cars/{id}/review', [CarController::class, 'review']);
+
+    // Notifications - Admin targeted sending
+    Route::get('/notifications/eligible-users', [AdminNotificationController::class, 'eligibleUsers']);
+    Route::post('/notifications/send', [AdminNotificationController::class, 'send']);
 });
 
 // ======= Menu Sections and Items (Public) =======

@@ -11,16 +11,19 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('user_type', [
-                'normal',
-                'real_estate_office',
-                'real_estate_individual',
-                'restaurant',
-                'car_rental_office',
-                'driver',
-                'admin' // النوع الجديد
-            ])->change();
+        $driver = Schema::getConnection()->getDriverName();
+        Schema::table('users', function (Blueprint $table) use ($driver) {
+            if ($driver !== 'sqlite') {
+                $table->enum('user_type', [
+                    'normal',
+                    'real_estate_office',
+                    'real_estate_individual',
+                    'restaurant',
+                    'car_rental_office',
+                    'driver',
+                    'admin' // النوع الجديد
+                ])->change();
+            }
         });
     }
 
@@ -29,16 +32,19 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('user_type', [
-                'normal',
-                'real_estate_office',
-                'real_estate_individual',
-                'restaurant',
-                'car_rental_office',
-                'driver'
-                // تم حذف admin هنا في الـ down
-            ])->change();
+        $driver = Schema::getConnection()->getDriverName();
+        Schema::table('users', function (Blueprint $table) use ($driver) {
+            if ($driver !== 'sqlite') {
+                $table->enum('user_type', [
+                    'normal',
+                    'real_estate_office',
+                    'real_estate_individual',
+                    'restaurant',
+                    'car_rental_office',
+                    'driver'
+                    // تم حذف admin هنا في الـ down
+                ])->change();
+            }
         });
     }
 };

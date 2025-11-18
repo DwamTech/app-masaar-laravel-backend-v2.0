@@ -43,6 +43,23 @@ class FcmHttpV1Service
             ]),
         ];
 
+        // Local simulation mode to avoid hitting production FCM while testing
+        $simulate = app()->environment('local') || (bool)env('FCM_LOCAL_SIMULATION', false);
+        if ($simulate) {
+            Log::info('[FCMv1][SIM] Simulating push send', [
+                'token' => $token,
+                'project_id' => $this->projectId,
+                'payload' => $payload,
+            ]);
+            return [
+                'simulated'  => true,
+                'status'     => 'ok',
+                'message_id' => 'sim-' . substr(md5(json_encode($payload) . microtime(true)), 0, 12),
+                'payload'    => $payload,
+                'note'       => 'Local simulation: no request sent to Google FCM',
+            ];
+        }
+
         // =======================>> التعديل الأول: تسجيل ما يتم إرساله <<=======================
         Log::info('[FCMv1] Sending Push Notification Request:', ['token' => $token, 'payload' => $payload]);
         // ===================================================================================

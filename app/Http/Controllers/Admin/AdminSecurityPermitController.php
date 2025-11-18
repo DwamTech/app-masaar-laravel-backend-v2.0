@@ -109,8 +109,8 @@ class AdminSecurityPermitController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        // التحقق من صلاحية الإدارة
-        if (Auth::user()->user_type !== 'admin') {
+        // التحقق من صلاحية الإدارة مع التعامل مع المستخدم غير المصادق
+        if (!Auth::check() || Auth::user()->user_type !== 'admin') {
             return response()->json([
                 'status' => false,
                 'message' => 'غير مصرح لك بالوصول'
@@ -125,7 +125,8 @@ class AdminSecurityPermitController extends Controller
                 'admin_notes' => 'nullable|string|max:1000',
             ]);
 
-            $permit->updateStatus($validated['status'], $validated['admin_notes']);
+            // تمرير ملاحظة الأدمن كـ null إذا لم تُرسل لتفادي Undefined array key
+            $permit->updateStatus($validated['status'], $validated['admin_notes'] ?? null);
 
             return response()->json([
                 'status' => true,

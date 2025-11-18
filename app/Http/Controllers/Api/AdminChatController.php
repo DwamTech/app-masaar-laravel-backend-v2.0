@@ -282,6 +282,7 @@ class AdminChatController extends Controller
         $u = $request->user();
         if (!$u) return false;
         $email = strtolower((string) ($u->email ?? ''));
-        return ($u->user_type === 'admin') && ($email === 'admin@msar.app');
+        $supportEmail = strtolower(env('SUPPORT_ADMIN_EMAIL', 'admin@msar.app'));
+        return ($u->user_type === 'admin') && ($email === $supportEmail);
     }
 }

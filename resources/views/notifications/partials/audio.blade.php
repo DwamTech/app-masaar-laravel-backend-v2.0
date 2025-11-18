@@ -1,0 +1,1 @@
+<audio id="notificationSound" src="{{ asset('sounds/notification.mp3') }}" preload="auto"></audio>

@@ -9,6 +9,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/landing.css') }}" rel="stylesheet">
+    <style>
+        /* فرض خط Cairo على الصفحة بالكامل */
+        html, body { font-family: 'Cairo', sans-serif !important; }
+        * { font-family: inherit !important; }
+    </style>
 </head>
 <body>
     <!-- Navigation -->

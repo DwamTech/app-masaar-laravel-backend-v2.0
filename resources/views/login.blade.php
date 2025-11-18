@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Login - Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="{{ asset('masar.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -389,7 +390,8 @@
             
             <h3 class="login-title">تسجيل الدخول</h3>
             
-            <form id="loginForm">
+            <form id="loginForm" method="POST" action="{{ route('login.post') }}">
+                @csrf
                 <div class="form-group">
                     <label for="email" class="form-label">البريد الإلكتروني</label>
                     <input type="email" id="email" name="email" class="form-control" required autocomplete="email" placeholder="أدخل البريد الإلكتروني">
@@ -415,54 +417,7 @@
     </div>
 
 <script>
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    document.getElementById('errorMsg').classList.add('d-none');
-
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    console.log("Submitting login form with:", { email, password });
-
-    try {
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ email, password })
-        });
-
-        console.log("Raw response:", response);
-
-        // Check HTTP status
-        console.log("Response status:", response.status);
-
-        const data = await response.json();
-
-        // Log the entire response data
-        console.log("Parsed response JSON:", data);
-
-        if (data.status && data.user && data.user.user_type === 'admin') {
-            console.log("Login successful! Storing token and user data in localStorage...");
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            console.log("Token:", data.token);
-            console.log("User:", data.user);
-            console.log("Redirecting to /dashboard...");
-            window.location.href = '/dashboard';
-        } else {
-            console.log("Login failed! Message:", data.message);
-            document.getElementById('errorMsg').innerText = data.message || 'Login failed';
-            document.getElementById('errorMsg').classList.remove('d-none');
-        }
-    } catch (error) {
-        console.error("Error during login request:", error);
-        document.getElementById('errorMsg').innerText = 'An error occurred. Please try again.';
-        document.getElementById('errorMsg').classList.remove('d-none');
-    }
-});
+// no JS interception; regular form POST will create web session and redirect
 </script>
 </body>
 </html>

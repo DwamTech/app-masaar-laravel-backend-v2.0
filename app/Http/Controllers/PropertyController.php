@@ -11,9 +11,155 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PropertyController extends Controller
 {
+    /**
+     * مدير النظام (Admin) - إضافة عقار جديد لأي مقدم خدمة
+     * POST /api/admin/properties
+     */
+    public function adminStore(CreatePropertyRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+            // ربط العقار تلقائياً بحساب الإدارة
+            $admin = $request->user();
+            // إنشاء/جلب كيان RealEstate للإدارة إن لم يكن موجوداً
+            $realEstate = RealEstate::firstOrCreate(
+                ['user_id' => $admin->id],
+                ['type' => 'office']
+            );
+            $ownerUserId = $admin->id;
+
+            $validated = $request->validated();
+
+            // توافقية مع المخطط القديم
+            if (!isset($validated['old_type']) && isset($validated['property_type'])) {
+                $validated['old_type'] = $validated['property_type'];
+            }
+            if (!isset($validated['old_price']) && isset($validated['property_price'])) {
+                $validated['old_price'] = $validated['property_price'];
+            }
+
+            // رفع الصورة الرئيسية
+            if ($request->hasFile('main_image')) {
+                $validated['main_image'] = $this->uploadImage($request->file('main_image'), 'properties/main');
+            }
+
+            // رفع صور المعرض
+            $galleryUrls = [];
+            if ($request->hasFile('gallery_images')) {
+                foreach ($request->file('gallery_images') as $image) {
+                    $galleryUrls[] = $this->uploadImage($image, 'properties/gallery');
+                }
+            }
+            $validated['gallery_image_urls'] = $galleryUrls;
+
+            // إضافة البيانات التلقائية
+            $validated['real_estate_id'] = $realEstate->id;
+            $validated['user_id'] = $ownerUserId;
+            $validated['view_count'] = 0;
+
+            // تثبيت هوية الإدارة والعلامة التجارية على العقار
+            $validated['developer_name'] = $validated['developer_name'] ?? 'الإدارة';
+            $validated['logo_url'] = $validated['logo_url'] ?? asset('masar.png');
+
+            $property = Property::create($validated);
+            $property->refresh();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم إضافة العقار بواسطة الأدمن بنجاح',
+                'property' => $property->load(['realEstate', 'user'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ أثناء إضافة العقار بواسطة الأدمن',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * مدير النظام (Admin) - تعديل بيانات أي عقار
+     * PUT /api/admin/properties/{id}
+     */
+    public function adminUpdate(UpdatePropertyRequest $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $property = Property::findOrFail($id);
+
+            $validated = $request->validated();
+
+            // توافقية مع المخطط القديم
+            if (!isset($validated['old_type']) && isset($validated['property_type'])) {
+                $validated['old_type'] = $validated['property_type'];
+            }
+            if (!isset($validated['old_price']) && isset($validated['property_price'])) {
+                $validated['old_price'] = $validated['property_price'];
+            }
+
+            // قد يرغب الأدمن في نقل العقار إلى مكتب/مقدم خدمة آخر
+            if ($request->filled('real_estate_id')) {
+                $request->validate([
+                    'real_estate_id' => 'required|exists:real_estates,id',
+                ]);
+                $realEstate = RealEstate::findOrFail($request->input('real_estate_id'));
+                $validated['real_estate_id'] = $realEstate->id;
+                $validated['user_id'] = $realEstate->user_id; // محاذاة مالك العقار
+            }
+
+            // رفع الصورة الرئيسية الجديدة
+            if ($request->hasFile('main_image')) {
+                if ($property->main_image) {
+                    $this->deleteImage($property->main_image);
+                }
+                $validated['main_image'] = $this->uploadImage($request->file('main_image'), 'properties/main');
+            }
+
+            // إدارة صور المعرض
+            $currentGallery = $property->gallery_image_urls ?? [];
+            if ($request->has('remove_gallery_images')) {
+                foreach ($request->remove_gallery_images as $imageUrl) {
+                    $this->deleteImage($imageUrl);
+                    $currentGallery = array_filter($currentGallery, fn($url) => $url !== $imageUrl);
+                }
+            }
+            if ($request->hasFile('gallery_images')) {
+                foreach ($request->file('gallery_images') as $image) {
+                    $currentGallery[] = $this->uploadImage($image, 'properties/gallery');
+                }
+            }
+            $validated['gallery_image_urls'] = array_values($currentGallery);
+
+            $property->update($validated);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم تحديث العقار بواسطة الأدمن بنجاح',
+                'property' => $property->fresh()->load(['realEstate', 'user'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ أثناء تحديث العقار بواسطة الأدمن',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
     /**
      * مقدم الخدمة (Service Provider) - إضافة عقار جديد
      * POST /api/properties
@@ -389,7 +535,7 @@ class PropertyController extends Controller
     {
         try {
             $property = Property::findOrFail($id);
-            
+
             $validated = $request->validate([
                 'is_featured' => 'required|boolean',
             ]);
@@ -403,11 +549,22 @@ class PropertyController extends Controller
                 'property' => $property
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'بيانات غير صالحة',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'العقار غير موجود',
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
                 'message' => 'حدث خطأ أثناء تحديث العقار',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }

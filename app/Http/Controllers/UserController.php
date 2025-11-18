@@ -39,6 +39,7 @@ class UserController extends Controller
             return response()->json(['status' => false, 'message' => 'غير مصرح لك'], 403);
         }
 
+        // التحقق الأساسي
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
@@ -48,6 +49,30 @@ class UserController extends Controller
             'city' => 'nullable|string|max:255',
             'user_type' => 'required|string',
         ]);
+
+        // تحقق إضافي حسب نوع المستخدم قبل الإنشاء
+        switch ($request->input('user_type')) {
+            case 'normal':
+                // لا حقول إضافية مطلوبة
+                break;
+            case 'real_estate_office':
+                $request->validate([
+                    'office_name' => 'required|string|max:255',
+                    'office_address' => 'required|string|max:255',
+                    'office_phone' => 'required|string|max:20',
+                    'logo_image' => 'required|string',
+                    'owner_id_front_image' => 'required|string',
+                    'owner_id_back_image' => 'required|string',
+                    'office_image' => 'required|string',
+                    'commercial_register_front_image' => 'required|string',
+                    'commercial_register_back_image' => 'required|string',
+                    'tax_enabled' => 'nullable|boolean',
+                ]);
+                break;
+            // يمكن إضافة حالات أخرى لاحقًا
+            default:
+                break;
+        }
 
         $user = User::create([
             'name' => $validated['name'],
@@ -59,10 +84,39 @@ class UserController extends Controller
             'user_type' => $validated['user_type'],
         ]);
 
+        // إنشاء العلاقات حسب نوع المستخدم
+        switch ($user->user_type) {
+            case 'normal':
+                $user->normalUser()->create([]);
+                break;
+            case 'real_estate_office':
+                $realEstate = $user->realEstate()->create(['type' => 'office']);
+                $realEstate->officeDetail()->create([
+                    'office_name' => $request->input('office_name'),
+                    'office_address' => $request->input('office_address'),
+                    'office_phone' => $request->input('office_phone'),
+                    'logo_image' => $request->input('logo_image'),
+                    'owner_id_front_image' => $request->input('owner_id_front_image'),
+                    'owner_id_back_image' => $request->input('owner_id_back_image'),
+                    'office_image' => $request->input('office_image'),
+                    'commercial_register_front_image' => $request->input('commercial_register_front_image'),
+                    'commercial_register_back_image' => $request->input('commercial_register_back_image'),
+                    'tax_enabled' => $request->boolean('tax_enabled'),
+                ]);
+                break;
+            default:
+                // لا شيء إضافي
+                break;
+        }
+
         return response()->json([
             'status' => true,
             'message' => 'تم إضافة المستخدم بنجاح',
-            'user' => $user,
+            'user' => $user->load([
+                'normalUser',
+                'realEstate.officeDetail',
+                'realEstate.individualDetail',
+            ]),
         ], 201);
     }
 

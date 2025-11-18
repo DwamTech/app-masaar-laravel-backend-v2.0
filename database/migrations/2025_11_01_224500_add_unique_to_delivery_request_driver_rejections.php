@@ -11,6 +11,11 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        $driver = Schema::getConnection()->getDriverName();
+        if ($driver === 'sqlite') {
+            // في SQLite نتجاهل التحقق وإضافة الفهرس لأن الهجرة السابقة أنشأته بالفعل
+            return;
+        }
         if (!Schema::hasTable('delivery_request_driver_rejections')) {
             return;
         }
@@ -29,6 +34,10 @@ return new class extends Migration {
      */
     public function down(): void
     {
+        $driver = Schema::getConnection()->getDriverName();
+        if ($driver === 'sqlite') {
+            return;
+        }
         if (!Schema::hasTable('delivery_request_driver_rejections')) {
             return;
         }

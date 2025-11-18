@@ -706,8 +706,147 @@ h2.mb-4 {
 .status-badge-rejected { background: linear-gradient(135deg, #dc3545, #e74c3c) !important; }
 .status-badge-processing { background: linear-gradient(135deg, #007bff, #0056b3) !important; }
 </style>
+<div class="container mt-4" id="unified-requests-section">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>جميع الطلبات (عرض موحد)</h3>
+        <div class="d-flex gap-2">
+            <select id="filterType" class="form-select" style="width: 220px;">
+                <option value="all">كل الأنواع</option>
+                <option value="appointment">مواعيد المعاينة</option>
+                <option value="car_order">طلبات السيارات</option>
+                <option value="delivery_request">طلبات التوصيل</option>
+                <option value="restaurant_order">طلبات المطاعم</option>
+                <option value="security_permit">التصاريح الأمنية</option>
+            </select>
+            <select id="filterStatus" class="form-select" style="width: 220px;">
+                <option value="all">كل الحالات</option>
+                <option value="pending">قيد المراجعة</option>
+                <option value="approved">مقبول</option>
+                <option value="in_progress">قيد التنفيذ</option>
+                <option value="completed">مكتمل</option>
+                <option value="rejected">مرفوض</option>
+                <option value="expired">منتهي</option>
+            </select>
+            <button id="refreshUnified" class="btn btn-primary"><i class="bi bi-arrow-clockwise me-1"></i>تحديث</button>
+        </div>
+    </div>
+    <div class="modern-requests-table-container">
+        <table class="table table-bordered align-middle modern-requests-table">
+            <thead class="modern-requests-header">
+                <tr>
+                    <th class="modern-requests-th"><i class="bi bi-list-ol me-2"></i>الترتيب</th>
+                    <th class="modern-requests-th"><i class="bi bi-diagram-3 me-2"></i>النوع</th>
+                    <th class="modern-requests-th"><i class="bi bi-person me-2"></i>العميل</th>
+                    <th class="modern-requests-th"><i class="bi bi-telephone me-2"></i>رقم العميل</th>
+                    <th class="modern-requests-th"><i class="bi bi-tools me-2"></i>مقدم الخدمة</th>
+                    <th class="modern-requests-th"><i class="bi bi-telephone me-2"></i>رقم مقدم الخدمة</th>
+                    <th class="modern-requests-th"><i class="bi bi-card-text me-2"></i>الوصف</th>
+                    <th class="modern-requests-th"><i class="bi bi-calendar-event me-2"></i>الوقت</th>
+                    <th class="modern-requests-th" data-cell="status"><i class="bi bi-flag me-2"></i>الحالة</th>
+                </tr>
+            </thead>
+            <tbody id="unifiedRequestsBody" class="modern-requests-body"></tbody>
+        </table>
+    </div>
+</div>
 
-<h2 class="mb-4">إدارة الطلبات</h2>
+@push('scripts')
+<script>
+    (function(){
+        const baseUrl = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        const filterType = document.getElementById('filterType');
+        const filterStatus = document.getElementById('filterStatus');
+        const refreshBtn = document.getElementById('refreshUnified');
+        const tableBody = document.getElementById('unifiedRequestsBody');
+
+        async function fetchUnifiedRequests() {
+            const params = new URLSearchParams();
+            if (filterType.value && filterType.value !== 'all') params.set('type', filterType.value);
+            if (filterStatus.value && filterStatus.value !== 'all') params.set('status_category', filterStatus.value);
+            params.set('per_page', 'all');
+            const url = `${baseUrl}/api/admin/system-requests?` + params.toString();
+            const res = await fetch(url, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await res.json();
+            if (!data.status) { throw new Error('فشل جلب الطلبات الموحدة'); }
+            return data.data || [];
+        }
+
+        function typeLabel(type) {
+            const map = {
+                appointment: 'موعد معاينة',
+                car_order: 'طلب سيارة',
+                delivery_request: 'طلب توصيل',
+                restaurant_order: 'طلب مطعم',
+                security_permit: 'تصريح أمني'
+            };
+            return map[type] || type;
+        }
+
+        function statusBadge(category, label) {
+            const cls = category === 'completed' ? 'bg-success' :
+                        category === 'rejected' ? 'bg-danger' :
+                        category === 'in_progress' ? 'bg-warning' :
+                        category === 'approved' ? 'bg-success' :
+                        category === 'expired' ? 'bg-secondary' : 'bg-secondary';
+            const safeLabel = (label || category || '').toString();
+            return `<span class="badge ${cls}">${safeLabel}</span>`;
+        }
+
+        function renderUnified(items) {
+            tableBody.innerHTML = '';
+            if (!items.length) {
+                tableBody.innerHTML = `<tr><td colspan="9"><div class="modern-alert modern-alert-warning"><i class="fas fa-inbox"></i> لا توجد بيانات مطابقة للفلاتر.</div></td></tr>`;
+                return;
+            }
+            items.forEach((it, idx) => {
+                const tr = document.createElement('tr');
+                const timeText = it.time ? new Date(it.time).toLocaleString('ar-EG') : '-';
+                tr.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td>${typeLabel(it.type)}</td>
+                    <td>${it.customer_name || '-'}</td>
+                    <td>${it.customer_phone || '-'}</td>
+                    <td>${it.provider_name || '-'}</td>
+                    <td>${it.provider_phone || '-'}</td>
+                    <td>${it.title || '-'}</td>
+                    <td>${timeText}</td>
+                    <td data-cell="status">${statusBadge(it.status_category, it.status_label)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        async function loadUnified() {
+            try {
+                refreshBtn.disabled = true;
+                const items = await fetchUnifiedRequests();
+                renderUnified(items);
+            } catch (e) {
+                console.error('Unified requests error:', e);
+                tableBody.innerHTML = `<tr><td colspan="7"><div class="modern-alert modern-alert-danger">حدث خطأ أثناء جلب البيانات</div></td></tr>`;
+            } finally {
+                refreshBtn.disabled = false;
+            }
+        }
+
+        refreshBtn.addEventListener('click', loadUnified);
+        filterType.addEventListener('change', loadUnified);
+        filterStatus.addEventListener('change', loadUnified);
+
+        // Initial load
+        loadUnified();
+    })();
+</script>
+@endpush
+
+<!-- <h2 class="mb-4">إدارة الطلبات</h2>
 <div class="mb-3">
     <ul class="nav nav-tabs" id="ordersTabs">
         <li class="nav-item">
@@ -724,9 +863,9 @@ h2.mb-4 {
         </li>
        
     </ul>
-</div>
+</div> -->
 
-<div id="ordersTabContent" class="mt-4"></div>
+<!-- <div id="ordersTabContent" class="mt-4"></div> -->
 
 <!-- Modal للعرض أو الرد -->
 <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
@@ -764,7 +903,7 @@ let rents = [];
 let loading = false;
 let pollingInterval = null;
 let processingRequests = new Set(); // تتبع الطلبات قيد المعالجة
-const baseUrl = 'https://msar.app';
+const baseUrl = window.location.origin; // استخدم نفس الأصل الحالي لضمان تطابق التوكن
 
 // دالة إظهار التوست
 function showToast(message, type = 'success') {

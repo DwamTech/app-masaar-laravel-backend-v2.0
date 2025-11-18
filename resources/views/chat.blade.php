@@ -14,9 +14,9 @@
         --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     }
     .chat-container { display: flex; height: calc(100vh - 4rem); background: var(--white); border-radius: 20px; box-shadow: var(--shadow-lg); overflow: hidden;}
-    .conversations-list { min-width: 320px; max-width: 320px; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; background-color: var(--light-gray);}
-    .list-header { padding: 1.25rem; border-bottom: 1px solid #dee2e6;}
-    .list-header h4 { margin: 0; color: var(--primary-orange);}
+    .conversations-list { min-width: 320px; max-width: 320px; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; background-color: var(--light-gray);}    
+    .list-header { padding: 1.25rem; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; justify-content: space-between; gap: .5rem;}
+    .list-header h4 { margin: 0; color: var(--primary-orange);}    
     .list-body { overflow-y: auto; flex-grow: 1;}
     .conversation-item { display: flex; align-items: center; padding: 1rem 1.25rem; cursor: pointer; transition: background-color 0.2s ease; border-bottom: 1px solid #e9ecef;}
     .conversation-item:hover { background-color: #e9ecef;}
@@ -41,6 +41,24 @@
     .read-badge { font-size: 0.7rem; margin-inline-start: .5rem; }
     #sendMessageBtn { min-width: 50px; height: 50px; border-radius: 50%; background-color: var(--primary-orange); color: white; border: none; margin-right: 1rem; font-size: 1.5rem; transition: background-color 0.2s ease;}
     #sendMessageBtn:hover { background-color: #e67600;}
+
+    /* نافذة بدء محادثة جديدة */
+    .sc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1050; }
+    .sc-modal-overlay.show { display: flex; }
+    .sc-modal { width: 640px; max-width: 92vw; max-height: 85vh; background: var(--white); border-radius: 12px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; }
+    .sc-modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+    .sc-modal-body { padding: 1rem 1.25rem; overflow-y: auto; }
+    .sc-modal-footer { padding: .75rem 1.25rem; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: .5rem; }
+    .sc-search { position: relative; margin-bottom: .75rem; }
+    .sc-search input { width: 100%; padding: .5rem .75rem; border: 1px solid #ced4da; border-radius: 8px; }
+    .user-item { display: flex; align-items: center; padding: .5rem; border-bottom: 1px solid #f1f1f1; cursor: pointer; }
+    .user-item:hover { background-color: #f9f9f9; }
+    .user-pic { width: 36px; height: 36px; border-radius: 50%; margin-left: .5rem; object-fit: cover; }
+    .user-info { flex-grow: 1; }
+    .user-info .name { font-weight: 600; }
+    .user-info .email { font-size: .85rem; color: #6c757d; }
+    .selected-user { background: #fff3e0; border: 1px solid #ffe0b2; padding: .5rem .75rem; border-radius: 8px; margin-bottom: .75rem; display: none; align-items: center; gap: .5rem; }
+    .selected-user.show { display: flex; }
 </style>
 
 {{-- ========== قسم HTML الخاص بالصفحة ========== --}}
@@ -48,7 +66,10 @@
 
 <div class="chat-container">
     <div class="conversations-list">
-        <div class="list-header"><h4>جميع المحادثات</h4></div>
+        <div class="list-header">
+            <h4>جميع المحادثات</h4>
+            <button id="startNewChatBtn" class="btn btn-sm btn-outline-warning"><i class="bi bi-plus-circle"></i> بدء محادثة</button>
+        </div>
         <div class="list-body" id="conversationsContainer"><p class="p-3 text-muted">جاري تحميل المحادثات...</p></div>
     </div>
     <div class="chat-area">
@@ -71,6 +92,36 @@
         </div>
     </div>
 </div>
+
+<!-- نافذة بدء محادثة جديدة -->
+<div id="startConversationOverlay" class="sc-modal-overlay">
+    <div class="sc-modal" role="dialog" aria-modal="true">
+        <div class="sc-modal-header">
+            <h5 class="mb-0">بدء محادثة جديدة</h5>
+            <button type="button" class="btn-close" id="scModalClose" aria-label="إغلاق"></button>
+        </div>
+        <div class="sc-modal-body">
+            <div class="sc-search">
+                <input id="userSearchInput" type="text" placeholder="ابحث بالاسم أو البريد..." />
+            </div>
+            <div id="selectedUserBox" class="selected-user">
+                <!-- سيتم ملؤها عند اختيار مستخدم -->
+            </div>
+            <div id="userListContainer">
+                <p class="text-muted">جاري تحميل المستخدمين...</p>
+            </div>
+            <div id="initialMessageBox" class="mt-3" style="display:none;">
+                <label class="form-label">الرسالة الأولى</label>
+                <textarea id="initialMessageInput" class="form-control" rows="2" placeholder="اكتب الرسالة لبدء المحادثة..."></textarea>
+            </div>
+        </div>
+        <div class="sc-modal-footer">
+            <button class="btn btn-secondary" id="scCancelBtn">إلغاء</button>
+            <button class="btn btn-primary" id="scStartBtn" disabled>إرسال وبدء المحادثة</button>
+        </div>
+    </div>
+    
+</div>
 @endsection
 
 @section('scripts')
@@ -79,10 +130,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- [1] إعدادات وتحققات أساسية ---
     const API_TOKEN = localStorage.getItem('token');
+    const SUPPORT_ADMIN_EMAIL = "{{ env('SUPPORT_ADMIN_EMAIL', 'admin@msar.app') }}".toLowerCase();
     if (!API_TOKEN) { window.location.href = '/login'; return; }
 
     const loggedInAdmin = JSON.parse(localStorage.getItem('user'));
-    const isAllowedAdmin = loggedInAdmin && loggedInAdmin.user_type === 'admin' && ((loggedInAdmin.email || '').toLowerCase() === 'admin@masar.app');
+    const isAllowedAdmin = loggedInAdmin && loggedInAdmin.user_type === 'admin' && ((loggedInAdmin.email || '').toLowerCase() === SUPPORT_ADMIN_EMAIL);
     if (!isAllowedAdmin) {
         const container = document.querySelector('.chat-container');
         if (container) {
@@ -111,10 +163,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendMessageForm = document.getElementById('sendMessageForm');
     const messageInput = document.getElementById('messageInput');
     const notificationSound = document.getElementById('notificationSound');
+    const startNewChatBtn = document.getElementById('startNewChatBtn');
+    const scOverlay = document.getElementById('startConversationOverlay');
+    const scModalClose = document.getElementById('scModalClose');
+    const scCancelBtn = document.getElementById('scCancelBtn');
+    const scStartBtn = document.getElementById('scStartBtn');
+    const userSearchInput = document.getElementById('userSearchInput');
+    const userListContainer = document.getElementById('userListContainer');
+    const selectedUserBox = document.getElementById('selectedUserBox');
+    const initialMessageInput = document.getElementById('initialMessageInput');
+    const initialMessageBox = document.getElementById('initialMessageBox');
 
     // --- [3] متغيرات الحالة ---
     let activeUser = null; // <-- تعديل: الآن نتتبع المستخدم النشط بدلاً من المحادثة
     let conversations = [];
+    let allUsers = [];
+    let selectedUser = null;
 
     // --- [4] دوال مساعدة ---
     const playNotificationSound = () => {
@@ -138,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!Array.isArray(messages)) { messagesContainer.innerHTML = ''; return; }
         messagesContainer.innerHTML = messages.map(m => {
             const isMine = (m.sender_id === loggedInAdmin.id) || (m.sender && m.sender.id === loggedInAdmin.id);
-            const cls = isMine ? 'received' : 'sent';
+            const cls = isMine ? 'sent' : 'received';
             const content = ((m.content ?? '') + '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
             const time = formatTime(m.created_at);
             const readText = (isMine && m.read_at) ? ' · تمت القراءة' : '';
@@ -152,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const appendMessage = (message) => {
         const isMine = (message.sender_id === loggedInAdmin.id) || (message.sender && message.sender.id === loggedInAdmin.id);
-        const cls = isMine ? 'received' : 'sent';
+        const cls = isMine ? 'sent' : 'received';
         const content = ((message.content ?? '') + '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         const time = formatTime(message.created_at || new Date().toISOString());
         const readText = (isMine && message.read_at) ? ' · تمت القراءة' : '';
@@ -187,6 +251,87 @@ document.addEventListener('DOMContentLoaded', function() {
             if (activeItem) activeItem.classList.add('active');
         }
     };
+
+    // --- [5.a] دوال نافذة بدء محادثة جديدة ---
+    const openStartConversationModal = async () => {
+        try {
+            scOverlay.classList.add('show');
+            scStartBtn.disabled = true;
+            initialMessageInput.value = '';
+            selectedUser = null;
+            selectedUserBox.classList.remove('show');
+            initialMessageBox.style.display = 'none';
+            userSearchInput.value = '';
+            if (allUsers.length === 0) { await fetchAllUsers(); }
+            renderUserList('');
+        } catch (e) { console.error('Open modal failed', e); }
+    };
+
+    const closeStartConversationModal = () => {
+        scOverlay.classList.remove('show');
+        selectedUser = null;
+        scStartBtn.disabled = true;
+    };
+
+    async function fetchAllUsers() {
+        try {
+            const response = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${API_TOKEN}`, 'Accept': 'application/json' }});
+            if (!response.ok) { console.error('فشل جلب المستخدمين', response.status); userListContainer.innerHTML = '<p class="text-danger">تعذّر جلب المستخدمين.</p>'; return; }
+            const payload = await response.json();
+            let usersData = [];
+            if (Array.isArray(payload)) {
+                usersData = payload;
+            } else if (Array.isArray(payload.users)) {
+                usersData = payload.users;
+            } else if (payload.data && Array.isArray(payload.data)) {
+                usersData = payload.data;
+            } else if (payload.data && Array.isArray(payload.data.users)) {
+                usersData = payload.data.users;
+            }
+            // استبعاد الأدمن
+            allUsers = usersData.filter(u => (u.user_type || '').toLowerCase() !== 'admin');
+        } catch (e) {
+            console.error('خطأ أثناء جلب المستخدمين', e);
+            userListContainer.innerHTML = '<p class="text-danger">حدث خطأ في الشبكة.</p>';
+        }
+    }
+
+    function renderUserList(term) {
+        const q = (term || '').toLowerCase();
+        const list = allUsers.filter(u => {
+            const name = (u.name || '').toLowerCase();
+            const email = (u.email || '').toLowerCase();
+            return !q || name.includes(q) || email.includes(q);
+        });
+        if (list.length === 0) {
+            userListContainer.innerHTML = '<p class="text-muted">لا يوجد نتائج مطابقة.</p>';
+            return;
+        }
+        userListContainer.innerHTML = list.map(u => `
+            <div class="user-item" data-id="${u.id}">
+                <img class="user-pic" src="https://avatar.iran.liara.run/public/boy?username=${u.name}" alt="${u.name}" />
+                <div class="user-info">
+                    <div class="name">${u.name}</div>
+                    <div class="email">${u.email || ''}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function setSelectedUser(u) {
+        selectedUser = u;
+        selectedUserBox.classList.add('show');
+        selectedUserBox.innerHTML = `
+            <img class="user-pic" src="https://avatar.iran.liara.run/public/boy?username=${u.name}" alt="${u.name}" />
+            <div>
+                <div class="name">${u.name}</div>
+                <div class="email">${u.email || ''}</div>
+            </div>
+        `;
+        initialMessageBox.style.display = 'block';
+        // فعّل الزر بمجرد اختيار مستخدم؛ سنتحقق من الرسالة عند الإرسال
+        scStartBtn.disabled = false;
+    }
     
     // --- [5] دوال الاتصال بالـ API ---
     // <-- تعديل: الـ endpoint أصبح index بدلاً من chats
@@ -247,6 +392,52 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) { console.error('Failed to load messages:', error); }
     });
 
+    // --- [6.a] أحداث النافذة ---
+    startNewChatBtn.addEventListener('click', openStartConversationModal);
+    scModalClose.addEventListener('click', closeStartConversationModal);
+    scCancelBtn.addEventListener('click', closeStartConversationModal);
+    userSearchInput.addEventListener('input', (e) => { renderUserList(e.target.value || ''); });
+    userListContainer.addEventListener('click', (e) => {
+        const item = e.target.closest('.user-item');
+        if (!item) return;
+        const id = item.dataset.id;
+        const u = allUsers.find(x => String(x.id) === String(id));
+        if (u) setSelectedUser(u);
+    });
+    initialMessageInput.addEventListener('input', () => {
+        // لا نطفئ الزر عند الكتابة؛ فقط نتحقق من وجود مستخدم محدد
+        scStartBtn.disabled = !selectedUser;
+    });
+    scStartBtn.addEventListener('click', async () => {
+        try {
+            if (!selectedUser) return;
+            const content = initialMessageInput.value.trim();
+            if (!content) { alert('من فضلك اكتب الرسالة الأولى لبدء المحادثة'); initialMessageInput.focus(); return; }
+            scStartBtn.disabled = true;
+            scStartBtn.textContent = 'جاري الإرسال...';
+            const res = await fetch('/api/admin/chats', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${API_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ content, user_id: selectedUser.id })
+            });
+            if (!res.ok) { alert('فشل بدء المحادثة'); console.error('Start chat failed', await res.text()); scStartBtn.disabled = false; scStartBtn.textContent = 'إرسال وبدء المحادثة'; return; }
+            const selectedId = selectedUser ? selectedUser.id : null;
+            await fetchConversationsAPI();
+            closeStartConversationModal();
+            // افتح المحادثة فوراً بدون الاعتماد على selectedUser بعد الإغلاق
+            if (selectedId) {
+                const itemEl = conversationsContainer.querySelector(`.conversation-item[data-id="${selectedId}"]`);
+                if (itemEl) itemEl.click();
+            }
+        } catch (e) {
+            alert('حدث خطأ أثناء بدء المحادثة');
+            console.error(e);
+        } finally {
+            scStartBtn.disabled = false;
+            scStartBtn.textContent = 'إرسال وبدء المحادثة';
+        }
+    });
+
     sendMessageForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const content = messageInput.value.trim();
@@ -269,6 +460,8 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             messageInput.value = originalMessage;
             if(messagesContainer.lastChild) messagesContainer.lastChild.remove();
+            alert('فشل إرسال الرسالة. حاول مرة أخرى.');
+            console.error('Send message failed:', error);
         }
     });
 
@@ -317,6 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Fallback: Polling دوري لضمان جلب آخر الرسائل والمحادثات حتى لو لم يعمل Echo
+        const pollIntervalMs = (typeof Echo !== 'undefined') ? 10000 : 3000;
         setInterval(async () => {
             try {
                 await fetchConversationsAPI();
@@ -328,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } catch (_) { /* تجاهل أخطاء الشبكة المؤقتة */ }
-        }, 3000);
+        }, pollIntervalMs);
     }
 
     // --- [8] بدء التشغيل ---

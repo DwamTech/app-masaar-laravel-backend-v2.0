@@ -17,7 +17,7 @@ class UsersByTypeSeeder extends Seeder
         $definitions = [
             [
                 'name' => 'مدير النظام',
-                'email' => 'admin@masar.app',
+                'email' => 'admin@msar.app',
                 'user_type' => 'admin',
                 'approved' => true,
                 'available' => true,

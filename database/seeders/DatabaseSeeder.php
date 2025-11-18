@@ -12,6 +12,8 @@ use Database\Seeders\PropertiesSeeder;
 use Database\Seeders\CountriesSeeder;
 use Database\Seeders\NationalitiesSeeder;
 use Database\Seeders\SecurityPermitSettingsSeeder;
+use Database\Seeders\SecurityPermitsSeeder;
+use Database\Seeders\DeviceTokensSeeder;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -48,6 +50,11 @@ class DatabaseSeeder extends Seeder
             CountriesSeeder::class,
             NationalitiesSeeder::class,
             SecurityPermitSettingsSeeder::class,
+            SecurityPermitsSeeder::class,
+            // Populate simulated device tokens so admin modal shows eligible users
+            DeviceTokensSeeder::class,
+            // Seed admin-user conversations with sample messages
+            AdminConversationsSeeder::class,
         ]);
     }
 }

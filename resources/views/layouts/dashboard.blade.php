@@ -4,8 +4,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>@yield('title', 'Dashboard')</title>
+    <link rel="icon" type="image/png" href="{{ asset('masar.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-orange: #FC8700;
@@ -16,12 +18,12 @@
             --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
-        
-        body { 
-            
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* فرض الخط Cairo على كل العناصر */
+        html, body {
+            font-family: 'Cairo', sans-serif !important;
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         }
+        * { font-family: inherit !important; }
         
         .sidebar {
     width: 280px;
@@ -115,6 +117,17 @@
             align-items: center;
             position: relative;
             overflow: hidden;
+        }
+        /* شارة عدد الإشعارات بجانب زر الإشعارات */
+        .sidebar .nav-link .notif-badge {
+            display: none;
+            margin-right: auto;
+            background: #ff4757;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
         
         .sidebar .nav-link i {
@@ -1014,6 +1027,19 @@
 </head>
 <body>
     <script>
+        // حقن التوكن والمستخدم من السيشن إلى localStorage بعد تسجيل الدخول عبر الويب
+        @if(session('api_token'))
+            try {
+                localStorage.setItem('token', '{{ session('api_token') }}');
+            } catch (e) {}
+        @endif
+        @if(session('user'))
+            try {
+                localStorage.setItem('user', JSON.stringify(@json(session('user'))));
+            } catch (e) {}
+        @endif
+    </script>
+    <script>
         // حماية الصفحة
         if (!localStorage.getItem('token')) {
             window.location.href = '/login';
@@ -1051,11 +1077,11 @@
                         الرئيسية
                     </a>
                 </li>
-               <li class="nav-item">
-                    <a href="/notifications" class="nav-link">
-                        <i class="bi bi-house-door"></i>
+                <li class="nav-item">
+                    <a href="/notifications" class="nav-link" id="notificationsNav">
+                        <i class="bi bi-bell"></i>
                         إدارة الأشعارات
-                  
+                        <span id="notificationsCountBadge" class="notif-badge">0</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -1077,9 +1103,10 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{ route('chat') }}" class="nav-link">
+                    <a href="{{ route('chat') }}" class="nav-link" id="chatNav">
                         <i class="bi bi-chat-dots-fill"></i>
                         محادثات العملاء
+                        <span id="chatUnreadBadge" class="notif-badge">0</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -1092,6 +1119,22 @@
                     <a href="/AppSettings" class="nav-link">
                         <i class="bi bi-info-circle"></i>
                         معلومات التطبيق
+                    </a>
+                </li>
+                <!-- Property Management -->
+                <li class="nav-item mt-2">
+                    <div style="padding: 0.5rem 1.5rem; color: rgba(255,255,255,0.9); font-size: .9rem;">إدارة العقارات</div>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.properties.index') }}" class="nav-link">
+                        <i class="bi bi-buildings"></i>
+                        كل العقارات
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.properties.create') }}" class="nav-link">
+                        <i class="bi bi-plus-circle"></i>
+                        إضافة عقار
                     </a>
                 </li>
               
@@ -1315,7 +1358,218 @@
         }
       })();
     </script>
-  
+    <!-- عنصر توست عالمي لطيف يظهر لمدة ثانيتين عند زيادة واحدة في عدد الإشعارات -->
+    <div id="globalToast" class="global-toast">هناك إشعار جديد</div>
+    <style>
+      .global-toast {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0,0,0,0.85);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity .25s ease, transform .25s ease;
+        z-index: 1050;
+        pointer-events: none;
+        font-size: 0.95rem;
+      }
+      .global-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    </style>
+    <script>
+      // سكربت عالمي لتحديث شارة الإشعارات وعرض توست لطيف عند زيادة واحدة
+      (function(){
+        const badgeEl = document.getElementById('notificationsCountBadge');
+        const toastEl = document.getElementById('globalToast');
+        let user = null;
+        let token = '';
+        const baseTitle = (document.title || '').replace(/^\(\d+\)\s*/, '');
+
+        try {
+          token = localStorage.getItem('token') || '';
+          user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+        } catch (_) {}
+
+        const storageKey = user ? `lastUnreadCount:${user.id}` : 'lastUnreadCount';
+
+        function updateBadge(count) {
+          if (!badgeEl) return;
+          const c = Number(count) || 0;
+          badgeEl.textContent = c;
+          badgeEl.style.display = c > 0 ? 'inline-block' : 'none';
+        }
+
+        function updateTabTitle(count) {
+          const c = Number(count) || 0;
+          document.title = c > 0 ? `(${c}) ${baseTitle}` : baseTitle;
+        }
+
+        function showToastOnce() {
+          if (!toastEl) return;
+          toastEl.classList.add('show');
+          setTimeout(() => toastEl.classList.remove('show'), 2000);
+        }
+
+        async function fetchUnreadCount() {
+          if (!token || !user) return;
+          try {
+            const res = await fetch('/api/notifications/unread-count', {
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            const data = await res.json().catch(() => ({}));
+            if (data && data.status && typeof data.unread_count !== 'undefined') {
+              const current = Number(data.unread_count || 0);
+              const last = Number(localStorage.getItem(storageKey) || 0);
+              updateBadge(current);
+              updateTabTitle(current);
+              if (current - last === 1) {
+                showToastOnce();
+              }
+              localStorage.setItem(storageKey, String(current));
+            }
+          } catch (err) {
+            // تجاهل الأخطاء بهدوء
+          }
+        }
+
+        let pollTimer = null;
+        function startPolling() {
+          if (pollTimer) return;
+          // اجلب العدد فوراً ثم على فترات منتظمة لضمان التحديث حتى لو فشل Echo
+          fetchUnreadCount();
+          pollTimer = setInterval(fetchUnreadCount, 10000); // كل 10 ثوانٍ
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+              fetchUnreadCount();
+            }
+          });
+        }
+
+        function setupEcho() {
+          if (!window.Echo || !user) return;
+          try {
+            window.Echo.private(`App.Models.User.${user.id}`)
+              .listen('.unread-count-updated', (e) => {
+                const current = Number((e && e.unread_count) || 0);
+                const last = Number(localStorage.getItem(storageKey) || 0);
+                updateBadge(current);
+                updateTabTitle(current);
+                if (current - last === 1) {
+                  showToastOnce();
+                }
+                localStorage.setItem(storageKey, String(current));
+              })
+              .listen('.new-notification', () => {
+                // إظهار التوست فور وصول إشعار جديد؛ العدد سيتم تحديثه بحدث unread-count-updated
+                showToastOnce();
+              });
+          } catch (err) {
+            console.warn('Echo listen failed:', err);
+          }
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+          // ابدأ الاستعلام الدوري مع محاولة الاشتراك عبر Echo للتحديث الفوري
+          startPolling();
+          setupEcho();
+        });
+      })();
+    </script>
+
+    <!-- سكربت شارة عدد الرسائل غير المقروءة لمحادثات العملاء في القائمة الجانبية -->
+    <script>
+      (function(){
+        const badgeEl = document.getElementById('chatUnreadBadge');
+        let token = '';
+        let user = null;
+
+        try {
+          token = localStorage.getItem('token') || '';
+          user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+        } catch (_) {}
+
+        function updateBadge(count) {
+          if (!badgeEl) return;
+          const c = Number(count) || 0;
+          badgeEl.textContent = c;
+          badgeEl.style.display = c > 0 ? 'inline-block' : 'none';
+        }
+
+        async function fetchChatUnreadCount() {
+          if (!token || !user) return;
+          try {
+            const res = await fetch('/api/admin/chats', {
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (!res.ok) return;
+            const data = await res.json().catch(() => ({}));
+
+            let list = [];
+            if (data && data.status && data.data && Array.isArray(data.data.data)) {
+              list = data.data.data;
+            } else if (data && data.status && Array.isArray(data.data)) {
+              list = data.data;
+            }
+
+            const totalUnread = list.reduce((sum, item) => sum + (Number(item.unread_count) || 0), 0);
+            updateBadge(totalUnread);
+            return { list, totalUnread };
+          } catch (_) { /* ignore */ }
+        }
+
+        // الاشتراك في قنوات المحادثات لتحديث فوري عند وصول رسالة جديدة
+        const subscribed = new Set();
+        function setupChatEcho(list) {
+          if (!window.Echo || !Array.isArray(list)) return;
+          try {
+            list.forEach(item => {
+              const convoId = item.id;
+              if (!convoId || subscribed.has(convoId)) return;
+              window.Echo.private(`chat.${convoId}`)
+                .listen('.new.message', (event) => {
+                  const msg = event && event.message;
+                  if (!msg) return;
+                  // عند وصول رسالة من العميل، حدّث العدّاد
+                  if (user && String(msg.sender_id) !== String(user.id)) {
+                    fetchChatUnreadCount();
+                  }
+                });
+              subscribed.add(convoId);
+            });
+          } catch (err) {
+            console.warn('Chat Echo subscribe failed:', err);
+          }
+        }
+
+        let pollTimer = null;
+        document.addEventListener('DOMContentLoaded', async function(){
+          const result = await fetchChatUnreadCount();
+          if (result && Array.isArray(result.list)) {
+            setupChatEcho(result.list);
+          }
+          // Polling دوري لضمان التحديث حتى دون Echo
+          pollTimer = setInterval(fetchChatUnreadCount, 10000);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+              fetchChatUnreadCount();
+            }
+          });
+        });
+      })();
+    </script>
+
     @stack('scripts')
     @yield('scripts')
 

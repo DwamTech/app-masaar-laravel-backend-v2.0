@@ -1374,8 +1374,211 @@
              transform: scale(1.05);
          }
      
- </style>
- @endsection
+     /* أنماط نافذة إضافة حساب جديد */
+    .add-account-modal {
+        background: linear-gradient(135deg, #ffffff 0%, #fff8f0 100%);
+        border-radius: 18px;
+        box-shadow: 0 15px 45px rgba(252, 135, 0, 0.18);
+        border: 1px solid rgba(252, 135, 0, 0.2);
+    }
+    .type-selection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+        padding: 4px;
+    }
+    .type-card {
+        position: relative;
+        border: 1px solid #e9ecef;
+        border-radius: 14px;
+        padding: 18px 16px;
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+        min-height: 160px;
+        isolation: isolate;
+    }
+    .type-card::before {
+        content: '';
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        top: -40px;
+        left: -40px;
+        background: radial-gradient(circle at center, rgba(252, 135, 0, 0.12), transparent 60%);
+        transform: rotate(12deg);
+        z-index: -1;
+    }
+    .type-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(252, 135, 0, 0.08), transparent 60%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .type-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 28px rgba(252, 135, 0, 0.18);
+    }
+    .type-card:hover::after {
+        opacity: 1;
+    }
+    .type-card.active {
+        border-color: #FC8700;
+        box-shadow: 0 0 0 3px rgba(252, 135, 0, 0.14) inset, 0 8px 22px rgba(252, 135, 0, 0.2);
+    }
+    .type-card-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #FC8700 0%, #ff9500 100%);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(252, 135, 0, 0.3);
+        border: 2px solid #fff;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+    .type-card:hover .type-card-icon {
+        transform: translateY(-2px) scale(1.06);
+        box-shadow: 0 10px 22px rgba(252, 135, 0, 0.35);
+    }
+    .type-card.active .type-card-icon {
+        transform: translateY(-1px) scale(1.03);
+        box-shadow: 0 10px 26px rgba(252, 135, 0, 0.4);
+    }
+    .type-card-title {
+        font-weight: 800;
+        color: #2c3e50;
+        font-size: 1rem;
+        letter-spacing: 0.2px;
+    }
+    .type-card-hint {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    .selection-status {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+</style>
+@endsection
+
+@push('styles')
+<style>
+  /* أنماط نافذة إضافة الحساب فقط - مقصورة داخل #addUserModal */
+  #addUserModal .add-account-modal {
+    background: linear-gradient(135deg, #ffffff 0%, #fff8f0 100%);
+    border-radius: 18px;
+    box-shadow: 0 15px 45px rgba(252, 135, 0, 0.18);
+    border: 1px solid rgba(252, 135, 0, 0.2);
+  }
+  #addUserModal .type-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    padding: 4px;
+  }
+  #addUserModal .type-card {
+    position: relative;
+    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 18px 16px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    min-height: 160px;
+    isolation: isolate;
+  }
+  #addUserModal .type-card::before {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    top: -40px;
+    left: -40px;
+    background: radial-gradient(circle at center, rgba(252, 135, 0, 0.12), transparent 60%);
+    transform: rotate(12deg);
+    z-index: -1;
+  }
+  #addUserModal .type-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(252, 135, 0, 0.08), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  #addUserModal .type-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 28px rgba(252, 135, 0, 0.18);
+  }
+  #addUserModal .type-card:hover::after {
+    opacity: 1;
+  }
+  #addUserModal .type-card.active {
+    border-color: #FC8700;
+    box-shadow: 0 0 0 3px rgba(252, 135, 0, 0.14) inset, 0 8px 22px rgba(252, 135, 0, 0.2);
+  }
+  #addUserModal .type-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #FC8700 0%, #ff9500 100%);
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(252, 135, 0, 0.3);
+    border: 2px solid #fff;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+  }
+  #addUserModal .type-card:hover .type-card-icon {
+    transform: translateY(-2px) scale(1.06);
+    box-shadow: 0 10px 22px rgba(252, 135, 0, 0.35);
+  }
+  #addUserModal .type-card.active .type-card-icon {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 10px 26px rgba(252, 135, 0, 0.4);
+  }
+  #addUserModal .type-card-title {
+    font-weight: 800;
+    color: #2c3e50;
+    font-size: 1rem;
+    letter-spacing: 0.2px;
+  }
+  #addUserModal .type-card-hint {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 4px;
+  }
+  #addUserModal .selection-status {
+    font-size: 0.9rem;
+    color: #6c757d;
+  }
+</style>
+@endpush
 
 @section('content')
 <div id="accountsApp">
@@ -1546,9 +1749,94 @@
       </form>
     </div>
   </div>
+</div><!-- Modal إضافة حساب جديد -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content add-account-modal">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2"></i>إنشاء حساب جديد</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="addUserSelectionStep">
+          <div class="mb-3 text-muted small">
+            اختر نوع الحساب لبدء الإعداد. سنجهز النموذج لكل نوع لاحقًا.
+          </div>
+          <div class="type-selection-grid">
+          <div class="type-card" data-type="normal" onclick="selectNewAccountType('normal')">
+            <div class="type-card-icon"><i class="bi bi-person"></i></div>
+            <div class="type-card-title">مستخدم عادي</div>
+            <div class="type-card-hint">حساب قياسي للمستخدمين</div>
+          </div>
+          <div class="type-card" data-type="restaurant" onclick="selectNewAccountType('restaurant')">
+            <div class="type-card-icon"><i class="bi bi-shop"></i></div>
+            <div class="type-card-title">مطعم</div>
+            <div class="type-card-hint">ملف مطعم شامل</div>
+          </div>
+          <div class="type-card" data-type="real_estate_office" onclick="selectNewAccountType('real_estate_office')">
+            <div class="type-card-icon"><i class="bi bi-building"></i></div>
+            <div class="type-card-title">مكتب عقارات</div>
+            <div class="type-card-hint">كيان تجاري للعقارات</div>
+          </div>
+          <div class="type-card" data-type="real_estate_individual" onclick="selectNewAccountType('real_estate_individual')">
+            <div class="type-card-icon"><i class="bi bi-person-badge-fill"></i></div>
+            <div class="type-card-title">سمسار</div>
+            <div class="type-card-hint">وسيط عقاري فردي</div>
+          </div>
+          <div class="type-card" data-type="driver" onclick="selectNewAccountType('driver')">
+            <div class="type-card-icon"><i class="bi bi-steering-wheel"></i></div>
+            <div class="type-card-title">سائق</div>
+            <div class="type-card-hint">سائق مرتبط بمكتب</div>
+          </div>
+          <div class="type-card" data-type="car_rental_office" onclick="selectNewAccountType('car_rental_office')">
+            <div class="type-card-icon"><i class="bi bi-car-front"></i></div>
+            <div class="type-card-title">مكتب تأجير سيارات</div>
+            <div class="type-card-hint">تأجير سيارات وإدارة السائقين</div>
+          </div>
+          </div>
+        </div>
+        <div id="addUserFormStep" class="d-none">
+          <form id="addNormalUserForm" autocomplete="off">
+            @include('accounts.partials.normal-user-form')
+          </form>
+          <form id="addRealEstateOfficeForm" class="d-none" autocomplete="off">
+            @include('accounts.partials.real-estate-office-form')
+          </form>
+          <form id="addRealEstateIndividualForm" class="d-none" autocomplete="off">
+            @include('accounts.partials.real-estate-individual-form')
+          </form>
+          <form id="addDriverForm" class="d-none" autocomplete="off">
+            @include('accounts.partials.driver-form')
+          </form>
+          <form id="addCarRentalOfficeForm" class="d-none" autocomplete="off">
+            @include('accounts.partials.car-rental-office-form')
+          </form>
+          <form id="addRestaurantForm" class="d-none" autocomplete="off">
+            @include('accounts.partials.restaurant-form')
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <span class="selection-status" id="addTypeStatus">لم يتم اختيار نوع بعد</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-outline-secondary d-none" id="addUserBackBtn" onclick="backToTypeSelection()">
+            <i class="bi bi-arrow-right-circle me-1"></i>رجوع
+          </button>
+          <button type="button" class="btn btn-primary" id="addUserProceedBtn" onclick="proceedCreateUser()" disabled>
+            <i class="bi bi-arrow-right-circle me-1"></i>استمرار
+          </button>
+          <button type="button" class="btn btn-success d-none" id="addUserSubmitBtn" onclick="submitNormalUserForm()" disabled>
+            <i class="bi bi-check-circle me-1"></i>إضافة
+          </button>
+          <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 @endsection
-
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -2147,6 +2435,7 @@ function getNestedValue(obj, path) {
 async function uploadImage(event, fieldName) {
     const file = event.target.files[0];
     if (!file) return;
+    const form = event.target.closest('form');
     const token = localStorage.getItem('token');
     if (!token) { alert("يرجى تسجيل الدخول أولًا."); window.location.href = '/login'; return; }
     let formData = new FormData();
@@ -2158,10 +2447,45 @@ async function uploadImage(event, fieldName) {
     });
     const data = await res.json();
     if (data.status && data.files && data.files[0]) {
-        document.querySelector(`[name="${fieldName}"]`).value = data.files[0];
-        document.getElementById(`img_preview_${fieldName}`).src =  data.files[0];
-        document.getElementById(`img_preview_${fieldName}`).style.display = 'inline-block';
-    } else { alert('فشل رفع الصورة'); }
+        const hidden = form ? form.querySelector(`[name="${fieldName}"]`) : document.querySelector(`[name="${fieldName}"]`);
+        if (hidden) hidden.value = data.files[0];
+        const imgEl = form ? form.querySelector(`#img_preview_${fieldName}`) : document.getElementById(`img_preview_${fieldName}`);
+        if (imgEl) {
+          imgEl.src = data.files[0];
+          imgEl.style.display = 'inline-block';
+        }
+        const wrapper = form ? form.querySelector(`#preview_wrapper_${fieldName}`) : document.getElementById(`preview_wrapper_${fieldName}`);
+        if (wrapper) wrapper.style.display = 'inline-block';
+        // إعادة تقييم التحقق للنماذج ذات الصلة
+        if (typeof validateRealEstateOfficeForm === 'function') validateRealEstateOfficeForm();
+        if (typeof validateRealEstateIndividualForm === 'function') validateRealEstateIndividualForm();
+        if (typeof validateDriverForm === 'function') validateDriverForm();
+        if (typeof validateCarRentalOfficeForm === 'function') validateCarRentalOfficeForm();
+        if (typeof validateRestaurantForm === 'function') validateRestaurantForm();
+  } else { alert('فشل رفع الصورة'); }
+}
+
+function removeImage(fieldName) {
+  try {
+    const visibleForm = document.querySelector('#addUserFormStep form:not(.d-none)');
+    const form = visibleForm || document.getElementById('addCarRentalOfficeForm');
+    const hidden = form ? form.querySelector(`[name="${fieldName}"]`) : document.querySelector(`[name="${fieldName}"]`);
+    if (hidden) hidden.value = '';
+    const imgEl = form ? form.querySelector(`#img_preview_${fieldName}`) : document.getElementById(`img_preview_${fieldName}`);
+    if (imgEl) { imgEl.src = ''; imgEl.style.display = 'none'; }
+    const wrapper = form ? form.querySelector(`#preview_wrapper_${fieldName}`) : document.getElementById(`preview_wrapper_${fieldName}`);
+    if (wrapper) wrapper.style.display = 'none';
+    const fileInput = form ? form.querySelector(`input[type="file"][data-field="${fieldName}"]`) : document.querySelector(`input[type="file"][data-field="${fieldName}"]`);
+    if (fileInput) fileInput.value = '';
+    // إعادة تقييم زر الإرسال في نموذج مكتب العقارات إن وجد
+    if (typeof validateRealEstateOfficeForm === 'function') validateRealEstateOfficeForm();
+    // إعادة تقييم زر الإرسال في نموذج السمسار إن وجد
+    if (typeof validateRealEstateIndividualForm === 'function') validateRealEstateIndividualForm();
+    // إعادة تقييم زر الإرسال في نموذج السائق إن وجد
+    if (typeof validateDriverForm === 'function') validateDriverForm();
+    if (typeof validateCarRentalOfficeForm === 'function') validateCarRentalOfficeForm();
+    if (typeof validateRestaurantForm === 'function') validateRestaurantForm();
+  } catch (e) { console.warn('removeImage error for', fieldName, e); }
 }
 async function handleEditSubmit(e, id) {
     e.preventDefault();
@@ -2291,9 +2615,14 @@ function renderFilteredTable(filteredUsers) {
         <div class="table-responsive">
             <div class="d-flex justify-content-between align-items-center mb-3 px-3 pt-3">
                 <h5 class="mb-0">قائمة الحسابات</h5>
-                <button class="btn btn-outline-primary btn-sm" onclick="fetchUsers(false)" title="تحديث البيانات">
-                    <i class="bi bi-arrow-clockwise me-1"></i>تحديث
-                </button>
+                <div class=\"d-flex gap-2\">
+    <button class=\"btn btn-primary btn-sm\" onclick=\"openAddUserModal()\" title=\"إضافة حساب جديد\">
+        <i class=\"bi bi-plus-circle me-1\"></i>اضاف
+    </button>
+    <button class=\"btn btn-outline-primary btn-sm\" onclick=\"fetchUsers(false)\" title=\"تحديث البيانات\">
+        <i class=\"bi bi-arrow-clockwise me-1\"></i>تحديث
+    </button>
+</div>
             </div>
             <table class="table table-hover align-middle modern-accounts-table">
                 <thead class="table-light">
@@ -2392,5 +2721,795 @@ function openImageModal(imageSrc, imageAlt = '') {
     });
 }
 
+
+// ===== إضافة حساب جديد: دوال النافذة =====
+let selectedNewUserType = null;
+function openAddUserModal() {
+  selectedNewUserType = null;
+  const modalEl = document.getElementById('addUserModal');
+  const proceedBtn = document.getElementById('addUserProceedBtn');
+  const backBtn = document.getElementById('addUserBackBtn');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  const statusEl = document.getElementById('addTypeStatus');
+  if (proceedBtn) { proceedBtn.disabled = true; proceedBtn.classList.remove('d-none'); }
+  if (backBtn) backBtn.classList.add('d-none');
+  if (submitBtn) { submitBtn.classList.add('d-none'); submitBtn.disabled = true; }
+  if (statusEl) statusEl.textContent = 'لم يتم اختيار نوع بعد';
+  if (modalEl) {
+    const selectionStep = modalEl.querySelector('#addUserSelectionStep');
+    const formStep = modalEl.querySelector('#addUserFormStep');
+    if (selectionStep) selectionStep.classList.remove('d-none');
+    if (formStep) formStep.classList.add('d-none');
+    modalEl.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+}
+function selectNewAccountType(type) {
+  selectedNewUserType = type;
+  const modalEl = document.getElementById('addUserModal');
+  if (modalEl) {
+    modalEl.querySelectorAll('.type-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.type === type);
+    });
+  }
+  const proceedBtn = document.getElementById('addUserProceedBtn');
+  const statusEl = document.getElementById('addTypeStatus');
+  if (proceedBtn) proceedBtn.disabled = false;
+  if (statusEl) statusEl.textContent = 'تم اختيار النوع: ' + (typeof getTypeLabel === 'function' ? getTypeLabel(type) : type);
+}
+function proceedCreateUser() {
+  if (!selectedNewUserType) return;
+  const modalEl = document.getElementById('addUserModal');
+  if (!modalEl) return;
+  const selectionStep = modalEl.querySelector('#addUserSelectionStep');
+  const formStep = modalEl.querySelector('#addUserFormStep');
+  const proceedBtn = document.getElementById('addUserProceedBtn');
+  const backBtn = document.getElementById('addUserBackBtn');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  const statusEl = document.getElementById('addTypeStatus');
+  const normalForm = document.getElementById('addNormalUserForm');
+  const reoForm = document.getElementById('addRealEstateOfficeForm');
+  const reiForm = document.getElementById('addRealEstateIndividualForm');
+  const driverForm = document.getElementById('addDriverForm');
+  const carForm = document.getElementById('addCarRentalOfficeForm');
+  const restaurantForm = document.getElementById('addRestaurantForm');
+  if (selectedNewUserType === 'normal') {
+    if (selectionStep) selectionStep.classList.add('d-none');
+    if (formStep) formStep.classList.remove('d-none');
+    if (proceedBtn) proceedBtn.classList.add('d-none');
+    if (backBtn) backBtn.classList.remove('d-none');
+    if (submitBtn) { submitBtn.classList.remove('d-none'); }
+    if (statusEl) statusEl.textContent = 'نموذج: إضافة مستخدم عادي';
+    if (reoForm) reoForm.classList.add('d-none');
+    if (normalForm) normalForm.classList.remove('d-none');
+    if (submitBtn) { submitBtn.removeAttribute('onclick'); submitBtn.onclick = submitNormalUserForm; }
+    attachNormalUserFormListeners();
+    validateNormalUserForm();
+  } else {
+    if (selectedNewUserType === 'real_estate_office') {
+      if (selectionStep) selectionStep.classList.add('d-none');
+      if (formStep) formStep.classList.remove('d-none');
+      if (proceedBtn) proceedBtn.classList.add('d-none');
+      if (backBtn) backBtn.classList.remove('d-none');
+      if (submitBtn) { submitBtn.classList.remove('d-none'); }
+      if (statusEl) statusEl.textContent = 'نموذج: إضافة مكتب عقارات';
+      if (normalForm) normalForm.classList.add('d-none');
+      if (reoForm) reoForm.classList.remove('d-none');
+      if (submitBtn) { submitBtn.removeAttribute('onclick'); submitBtn.onclick = submitRealEstateOfficeForm; }
+      attachRealEstateOfficeFormListeners();
+      validateRealEstateOfficeForm();
+    } else if (selectedNewUserType === 'real_estate_individual') {
+      if (selectionStep) selectionStep.classList.add('d-none');
+      if (formStep) formStep.classList.remove('d-none');
+      if (proceedBtn) proceedBtn.classList.add('d-none');
+      if (backBtn) backBtn.classList.remove('d-none');
+      if (submitBtn) { submitBtn.classList.remove('d-none'); }
+      if (statusEl) statusEl.textContent = 'نموذج: إضافة سمسار';
+      if (normalForm) normalForm.classList.add('d-none');
+      if (reoForm) reoForm.classList.add('d-none');
+      if (reiForm) reiForm.classList.remove('d-none');
+      if (submitBtn) { submitBtn.removeAttribute('onclick'); submitBtn.onclick = submitRealEstateIndividualForm; }
+      attachRealEstateIndividualFormListeners();
+      validateRealEstateIndividualForm();
+    } else if (selectedNewUserType === 'driver') {
+      if (selectionStep) selectionStep.classList.add('d-none');
+      if (formStep) formStep.classList.remove('d-none');
+      if (proceedBtn) proceedBtn.classList.add('d-none');
+      if (backBtn) backBtn.classList.remove('d-none');
+      if (submitBtn) { submitBtn.classList.remove('d-none'); }
+      if (statusEl) statusEl.textContent = 'نموذج: إضافة سائق';
+      if (normalForm) normalForm.classList.add('d-none');
+      if (reoForm) reoForm.classList.add('d-none');
+      if (reiForm) reiForm.classList.add('d-none');
+      if (driverForm) driverForm.classList.remove('d-none');
+      if (submitBtn) { submitBtn.removeAttribute('onclick'); submitBtn.onclick = submitDriverForm; }
+      attachDriverFormListeners();
+      validateDriverForm();
+    } else if (selectedNewUserType === 'car_rental_office') {
+      if (selectionStep) selectionStep.classList.add('d-none');
+      if (formStep) formStep.classList.remove('d-none');
+      if (proceedBtn) proceedBtn.classList.add('d-none');
+      if (backBtn) backBtn.classList.remove('d-none');
+      if (submitBtn) { submitBtn.classList.remove('d-none'); }
+      if (statusEl) statusEl.textContent = 'نموذج: إضافة مكتب تأجير سيارات';
+      if (normalForm) normalForm.classList.add('d-none');
+      if (reoForm) reoForm.classList.add('d-none');
+      if (reiForm) reiForm.classList.add('d-none');
+      if (driverForm) driverForm.classList.add('d-none');
+      if (carForm) carForm.classList.remove('d-none');
+      if (submitBtn) { submitBtn.removeAttribute('onclick'); submitBtn.onclick = submitCarRentalOfficeForm; }
+      attachCarRentalOfficeFormListeners();
+      validateCarRentalOfficeForm();
+    } else if (selectedNewUserType === 'restaurant') {
+      if (selectionStep) selectionStep.classList.add('d-none');
+      if (formStep) formStep.classList.remove('d-none');
+      if (proceedBtn) proceedBtn.classList.add('d-none');
+      if (backBtn) backBtn.classList.remove('d-none');
+      if (submitBtn) { submitBtn.classList.remove('d-none'); }
+      if (statusEl) statusEl.textContent = 'نموذج: إضافة مطعم';
+      if (normalForm) normalForm.classList.add('d-none');
+      if (reoForm) reoForm.classList.add('d-none');
+      if (reiForm) reiForm.classList.add('d-none');
+      if (driverForm) driverForm.classList.add('d-none');
+      if (carForm) carForm.classList.add('d-none');
+      if (restaurantForm) restaurantForm.classList.remove('d-none');
+      if (submitBtn) { submitBtn.removeAttribute('onclick'); submitBtn.onclick = submitRestaurantForm; }
+      attachRestaurantFormListeners();
+      validateRestaurantForm();
+    } else {
+      try {
+        if (typeof showToast === 'function') {
+          showToast('هذا النوع غير مدعوم بعد. قريبًا.', 'warning');
+        } else {
+          alert('هذا النوع غير مدعوم بعد. قريبًا.');
+        }
+      } catch (e) { console.log('Selected type:', selectedNewUserType); }
+    }
+  }
+}
+
+function backToTypeSelection() {
+  const modalEl = document.getElementById('addUserModal');
+  if (!modalEl) return;
+  const selectionStep = modalEl.querySelector('#addUserSelectionStep');
+  const formStep = modalEl.querySelector('#addUserFormStep');
+  const proceedBtn = document.getElementById('addUserProceedBtn');
+  const backBtn = document.getElementById('addUserBackBtn');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  const statusEl = document.getElementById('addTypeStatus');
+  const normalForm = document.getElementById('addNormalUserForm');
+  const reoForm = document.getElementById('addRealEstateOfficeForm');
+  const reiForm = document.getElementById('addRealEstateIndividualForm');
+  const driverForm = document.getElementById('addDriverForm');
+  const carForm = document.getElementById('addCarRentalOfficeForm');
+  const restaurantForm = document.getElementById('addRestaurantForm');
+  if (formStep) formStep.classList.add('d-none');
+  if (selectionStep) selectionStep.classList.remove('d-none');
+  if (proceedBtn) { proceedBtn.classList.remove('d-none'); proceedBtn.disabled = !selectedNewUserType; }
+  if (backBtn) backBtn.classList.add('d-none');
+  if (submitBtn) { submitBtn.classList.add('d-none'); submitBtn.disabled = true; }
+  if (statusEl) statusEl.textContent = selectedNewUserType ? ('تم اختيار النوع: ' + (typeof getTypeLabel === 'function' ? getTypeLabel(selectedNewUserType) : selectedNewUserType)) : 'لم يتم اختيار نوع بعد';
+  if (normalForm) normalForm.classList.add('d-none');
+  if (reoForm) reoForm.classList.add('d-none');
+  if (reiForm) reiForm.classList.add('d-none');
+  if (driverForm) driverForm.classList.add('d-none');
+  if (carForm) carForm.classList.add('d-none');
+  if (restaurantForm) restaurantForm.classList.add('d-none');
+}
+
+// ===== منطق التحقق وإرسال نموذج المستخدم العادي =====
+function attachNormalUserFormListeners() {
+  const form = document.getElementById('addNormalUserForm');
+  if (!form) return;
+  const inputs = form.querySelectorAll('input, select');
+  inputs.forEach(el => {
+    el.addEventListener('input', validateNormalUserForm);
+    el.addEventListener('change', validateNormalUserForm);
+  });
+}
+
+function validateNormalUserForm() {
+  const form = document.getElementById('addNormalUserForm');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  if (!form || !submitBtn) return;
+  const name = form.querySelector('[name="name"]')?.value?.trim();
+  const email = form.querySelector('[name="email"]')?.value?.trim();
+  const password = form.querySelector('[name="password"]')?.value || '';
+  const phone = form.querySelector('[name="phone"]')?.value?.trim();
+  const governorate = form.querySelector('[name="governorate"]')?.value?.trim();
+  const valid = !!(name && email && email.includes('@') && password.length >= 6 && phone && governorate);
+  submitBtn.disabled = !valid;
+}
+
+async function submitNormalUserForm() {
+  const form = document.getElementById('addNormalUserForm');
+  if (!form) return;
+  const token = localStorage.getItem('token');
+  if (!token) { alert('يرجى تسجيل الدخول أولًا.'); window.location.href = '/login'; return; }
+
+  const payload = {
+    name: form.querySelector('[name="name"]').value.trim(),
+    email: form.querySelector('[name="email"]').value.trim(),
+    password: form.querySelector('[name="password"]').value,
+    phone: form.querySelector('[name="phone"]').value.trim(),
+    governorate: form.querySelector('[name="governorate"]').value.trim(),
+    user_type: 'normal'
+  };
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      if (typeof showToast === 'function') { showToast('تم إضافة المستخدم بنجاح', 'success'); }
+      else { alert('تم إضافة المستخدم بنجاح'); }
+      const modalInstance = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+      if (modalInstance) modalInstance.hide();
+      form.reset();
+      const submitBtn = document.getElementById('addUserSubmitBtn');
+      if (submitBtn) submitBtn.disabled = true;
+      await fetchUsers();
+    } else {
+      let msg = 'فشل الإضافة';
+      try { const data = await res.json(); msg = data.message || msg; } catch {}
+      if (typeof showToast === 'function') { showToast(msg, 'danger'); } else { alert(msg); }
+    }
+  } catch (err) {
+    console.error('Add user error:', err);
+    alert('حدث خطأ غير متوقع أثناء الإضافة');
+  }
+}
+
+// ===== منطق التحقق وإرسال نموذج مكتب العقارات =====
+function attachRealEstateOfficeFormListeners() {
+  const form = document.getElementById('addRealEstateOfficeForm');
+  if (!form) return;
+  const inputs = form.querySelectorAll('input, select, textarea');
+  inputs.forEach(el => {
+    el.addEventListener('input', validateRealEstateOfficeForm);
+    el.addEventListener('change', validateRealEstateOfficeForm);
+  });
+
+  // فتح نافذة خرائط جوجل لاختيار عنوان المكتب
+  const openBtn = form.querySelector('#openOfficeMapBtn');
+  const addrInput = form.querySelector('#officeAddressInput');
+  if (openBtn) openBtn.addEventListener('click', openOfficeMapPicker);
+  if (addrInput) addrInput.addEventListener('click', openOfficeMapPicker);
+
+  // ربط أحداث إغلاق نافذة الخريطة مرة واحدة فقط
+  if (!window._reoMapEventsBound) {
+    window._reoMapEventsBound = true;
+    const closeBtn = document.getElementById('closeOfficeMap');
+    const overlay = document.getElementById('officeMapPicker');
+    if (closeBtn) closeBtn.addEventListener('click', closeOfficeMapPicker);
+    if (overlay) overlay.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'officeMapPicker') closeOfficeMapPicker();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOfficeMapPicker(); });
+  }
+}
+
+function validateRealEstateOfficeForm() {
+  const form = document.getElementById('addRealEstateOfficeForm');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  if (!form || !submitBtn) return;
+  const name = form.querySelector('[name="name"]')?.value?.trim();
+  const email = form.querySelector('[name="email"]')?.value?.trim();
+  const password = form.querySelector('[name="password"]')?.value || '';
+  const phone = form.querySelector('[name="phone"]')?.value?.trim();
+  const governorate = form.querySelector('[name="governorate"]')?.value?.trim();
+
+  const office_name = form.querySelector('[name="office_name"]')?.value?.trim();
+  const office_address = form.querySelector('[name="office_address"]')?.value?.trim();
+  const office_phone = form.querySelector('[name="office_phone"]')?.value?.trim();
+
+  const logo_image = form.querySelector('[name="logo_image"]')?.value?.trim();
+  const owner_id_front_image = form.querySelector('[name="owner_id_front_image"]')?.value?.trim();
+  const owner_id_back_image = form.querySelector('[name="owner_id_back_image"]')?.value?.trim();
+  const office_image = form.querySelector('[name="office_image"]')?.value?.trim();
+  const commercial_register_front_image = form.querySelector('[name="commercial_register_front_image"]')?.value?.trim();
+  const commercial_register_back_image = form.querySelector('[name="commercial_register_back_image"]')?.value?.trim();
+
+  const baseValid = !!(name && email && email.includes('@') && password.length >= 6 && phone && governorate);
+  const officeValid = !!(office_name && office_address && office_phone);
+  const imagesValid = !!(logo_image && owner_id_front_image && owner_id_back_image && office_image && commercial_register_front_image && commercial_register_back_image);
+  submitBtn.disabled = !(baseValid && officeValid && imagesValid);
+}
+
+async function submitRealEstateOfficeForm() {
+  const form = document.getElementById('addRealEstateOfficeForm');
+  if (!form) return;
+  const token = localStorage.getItem('token');
+  if (!token) { alert('يرجى تسجيل الدخول أولًا.'); window.location.href = '/login'; return; }
+
+  const payload = {
+    name: form.querySelector('[name="name"]').value.trim(),
+    email: form.querySelector('[name="email"]').value.trim(),
+    password: form.querySelector('[name="password"]').value,
+    phone: form.querySelector('[name="phone"]').value.trim(),
+    governorate: form.querySelector('[name="governorate"]').value.trim(),
+    user_type: 'real_estate_office',
+
+    office_name: form.querySelector('[name="office_name"]').value.trim(),
+    office_address: form.querySelector('[name="office_address"]').value.trim(),
+    office_phone: form.querySelector('[name="office_phone"]').value.trim(),
+
+    logo_image: form.querySelector('[name="logo_image"]').value.trim(),
+    owner_id_front_image: form.querySelector('[name="owner_id_front_image"]').value.trim(),
+    owner_id_back_image: form.querySelector('[name="owner_id_back_image"]').value.trim(),
+    office_image: form.querySelector('[name="office_image"]').value.trim(),
+    commercial_register_front_image: form.querySelector('[name="commercial_register_front_image"]').value.trim(),
+    commercial_register_back_image: form.querySelector('[name="commercial_register_back_image"]').value.trim(),
+
+    tax_enabled: !!form.querySelector('[name="tax_enabled"]')?.checked,
+  };
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      if (typeof showToast === 'function') { showToast('تم إضافة مكتب العقارات بنجاح', 'success'); }
+      else { alert('تم إضافة مكتب العقارات بنجاح'); }
+      const modalInstance = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+      if (modalInstance) modalInstance.hide();
+      form.reset();
+      const submitBtn = document.getElementById('addUserSubmitBtn');
+      if (submitBtn) submitBtn.disabled = true;
+      await fetchUsers();
+    } else {
+      let msg = 'فشل الإضافة';
+      try { const data = await res.json(); msg = data.message || msg; } catch {}
+      if (typeof showToast === 'function') { showToast(msg, 'danger'); } else { alert(msg); }
+    }
+  } catch (err) {
+    console.error('Add real estate office error:', err);
+    alert('حدث خطأ غير متوقع أثناء الإضافة');
+  }
+}
+
+// ===== منطق التحقق وإرسال نموذج السمسار =====
+function attachRealEstateIndividualFormListeners() {
+  const form = document.getElementById('addRealEstateIndividualForm');
+  if (!form) return;
+  const inputs = form.querySelectorAll('input, select, textarea');
+  inputs.forEach(el => {
+    el.addEventListener('input', validateRealEstateIndividualForm);
+    el.addEventListener('change', validateRealEstateIndividualForm);
+  });
+
+  // فتح نافذة خرائط جوجل لاختيار عنوان السمسار (اختياري)
+  const openBtn = form.querySelector('#openIndividualMapBtn');
+  const addrInput = form.querySelector('#individualAddressInput');
+  if (openBtn) openBtn.addEventListener('click', openIndividualMapPicker);
+  if (addrInput) addrInput.addEventListener('click', openIndividualMapPicker);
+
+  // ربط أحداث إغلاق نافذة الخريطة مرة واحدة فقط
+  if (!window._reiMapEventsBound) {
+    window._reiMapEventsBound = true;
+    const closeBtn = document.getElementById('closeIndividualMap');
+    const overlay = document.getElementById('individualMapPicker');
+    if (closeBtn) closeBtn.addEventListener('click', closeIndividualMapPicker);
+    if (overlay) overlay.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'individualMapPicker') closeIndividualMapPicker();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeIndividualMapPicker(); });
+  }
+}
+
+// ===== منطق التحقق وإرسال نموذج السائق =====
+function attachDriverFormListeners() {
+  const form = document.getElementById('addDriverForm');
+  if (!form) return;
+  const inputs = form.querySelectorAll('input, select');
+  inputs.forEach(el => {
+    el.addEventListener('input', validateDriverForm);
+    el.addEventListener('change', validateDriverForm);
+  });
+}
+
+function validateDriverForm() {
+  const form = document.getElementById('addDriverForm');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  if (!form || !submitBtn) return;
+  const name = form.querySelector('[name="name"]')?.value?.trim();
+  const email = form.querySelector('[name="email"]')?.value?.trim();
+  const password = form.querySelector('[name="password"]')?.value || '';
+  const phone = form.querySelector('[name="phone"]')?.value?.trim();
+  const governorate = form.querySelector('[name="governorate"]')?.value?.trim();
+
+  const baseValid = !!(name && email && email.includes('@') && password.length >= 6 && phone && governorate);
+  // تبسيط التحقق: تفاصيل السائق اختيارية عند التسجيل الأولي حسب السيرفر
+  submitBtn.disabled = !baseValid;
+}
+
+async function submitDriverForm() {
+  const form = document.getElementById('addDriverForm');
+  if (!form) return;
+  const token = localStorage.getItem('token');
+  if (!token) { alert('يرجى تسجيل الدخول أولًا.'); window.location.href = '/login'; return; }
+
+  // جمع قيم طرق الدفع وخيارات التأجير من الشيك بوكس
+  const payment_methods = [];
+  const rental_options = [];
+  form.querySelectorAll('#pm_cash, #pm_card, #pm_wallet').forEach(cb => { if (cb.checked) payment_methods.push(cb.value); });
+  form.querySelectorAll('#ro_hourly, #ro_daily, #ro_monthly').forEach(cb => { if (cb.checked) rental_options.push(cb.value); });
+
+  const payload = {
+    name: form.querySelector('[name="name"]').value.trim(),
+    email: form.querySelector('[name="email"]').value.trim(),
+    password: form.querySelector('[name="password"]').value,
+    phone: form.querySelector('[name="phone"]').value.trim(),
+    governorate: form.querySelector('[name="governorate"]').value.trim(),
+    user_type: 'driver',
+
+    profile_image: form.querySelector('[name="profile_image"]').value.trim(),
+    payment_methods,
+    rental_options,
+    cost_per_km: parseFloat(form.querySelector('[name="cost_per_km"]').value),
+    daily_driver_cost: parseFloat(form.querySelector('[name="daily_driver_cost"]').value),
+    max_km_per_day: parseInt(form.querySelector('[name="max_km_per_day"]').value, 10)
+  };
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      if (typeof showToast === 'function') { showToast('تم إضافة السائق بنجاح', 'success'); }
+      else { alert('تم إضافة السائق بنجاح'); }
+      const modalInstance = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+      if (modalInstance) modalInstance.hide();
+      form.reset();
+      const submitBtn = document.getElementById('addUserSubmitBtn');
+      if (submitBtn) submitBtn.disabled = true;
+      await fetchUsers();
+    } else {
+      let msg = 'فشل الإضافة';
+      try { const data = await res.json(); msg = data.message || msg; } catch {}
+      if (typeof showToast === 'function') { showToast(msg, 'danger'); } else { alert(msg); }
+    }
+  } catch (err) {
+    console.error('Add driver error:', err);
+    alert('حدث خطأ غير متوقع أثناء الإضافة');
+  }
+}
+
+// ===== منطق التحقق وإرسال نموذج مكتب تأجير السيارات =====
+function attachCarRentalOfficeFormListeners() {
+  const form = document.getElementById('addCarRentalOfficeForm');
+  if (!form) return;
+  const inputs = form.querySelectorAll('input, select');
+  inputs.forEach(el => {
+    el.addEventListener('input', validateCarRentalOfficeForm);
+    el.addEventListener('change', validateCarRentalOfficeForm);
+  });
+}
+
+function validateCarRentalOfficeForm() {
+  const form = document.getElementById('addCarRentalOfficeForm');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  if (!form || !submitBtn) return;
+  const name = form.querySelector('[name="name"]')?.value?.trim();
+  const email = form.querySelector('[name="email"]')?.value?.trim();
+  const password = form.querySelector('[name="password"]')?.value || '';
+  const phone = form.querySelector('[name="phone"]')?.value?.trim();
+  const governorate = form.querySelector('[name="governorate"]')?.value?.trim();
+
+  const office_name = form.querySelector('[name="office_name"]')?.value?.trim();
+  const logo_image = form.querySelector('[name="logo_image"]')?.value?.trim();
+  const commercial_register_front_image = form.querySelector('[name="commercial_register_front_image"]')?.value?.trim();
+  const commercial_register_back_image = form.querySelector('[name="commercial_register_back_image"]')?.value?.trim();
+
+  const baseValid = !!(name && email && email.includes('@') && password.length >= 6 && phone && governorate);
+  const officeValid = !!(office_name);
+  // سنُفعّل الزر عند اكتمال البيانات الأساسية + اسم المكتب
+  // المستندات ستُتحقق عند الإرسال لإظهار رسالة واضحة للمستخدم
+  submitBtn.disabled = !(baseValid && officeValid);
+}
+
+async function submitCarRentalOfficeForm() {
+  const form = document.getElementById('addCarRentalOfficeForm');
+  if (!form) return;
+  const token = localStorage.getItem('token');
+  if (!token) { alert('يرجى تسجيل الدخول أولًا.'); window.location.href = '/login'; return; }
+
+  // تحقق المستندات قبل الإرسال لإعطاء تغذية راجعة واضحة
+  const logo_image = form.querySelector('[name="logo_image"]')?.value?.trim();
+  const commercial_register_front_image = form.querySelector('[name="commercial_register_front_image"]')?.value?.trim();
+  const commercial_register_back_image = form.querySelector('[name="commercial_register_back_image"]')?.value?.trim();
+  const docsValid = !!(logo_image && commercial_register_front_image && commercial_register_back_image);
+  if (!docsValid) {
+    alert('من فضلك قم برفع المستندات المطلوبة (الشعار والسجل التجاري أمامي وخلفي).');
+    return;
+  }
+
+  const payment_methods = [];
+  const rental_options = [];
+  form.querySelectorAll('#co_pm_cash, #co_pm_card, #co_pm_wallet').forEach(cb => { if (cb.checked) payment_methods.push(cb.value); });
+  form.querySelectorAll('#co_ro_hourly, #co_ro_daily, #co_ro_monthly').forEach(cb => { if (cb.checked) rental_options.push(cb.value); });
+
+  const payload = {
+    name: form.querySelector('[name="name"]').value.trim(),
+    email: form.querySelector('[name="email"]').value.trim(),
+    password: form.querySelector('[name="password"]').value,
+    phone: form.querySelector('[name="phone"]').value.trim(),
+    governorate: form.querySelector('[name="governorate"]').value.trim(),
+    user_type: 'car_rental_office',
+
+    office_name: form.querySelector('[name="office_name"]').value.trim(),
+    logo_image: form.querySelector('[name="logo_image"]').value.trim(),
+    commercial_register_front_image: form.querySelector('[name="commercial_register_front_image"]').value.trim(),
+    commercial_register_back_image: form.querySelector('[name="commercial_register_back_image"]').value.trim(),
+    payment_methods,
+    rental_options,
+    cost_per_km: parseFloat(form.querySelector('[name="cost_per_km"]').value || '0'),
+    daily_driver_cost: parseFloat(form.querySelector('[name="daily_driver_cost"]').value || '0'),
+    max_km_per_day: parseInt(form.querySelector('[name="max_km_per_day"]').value || '0', 10),
+    is_available_for_delivery: !!form.querySelector('[name="is_available_for_delivery"]')?.checked,
+    is_available_for_rent: !!form.querySelector('[name="is_available_for_rent"]')?.checked
+  };
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      if (typeof showToast === 'function') { showToast('تم إضافة مكتب التأجير بنجاح', 'success'); }
+      else { alert('تم إضافة مكتب التأجير بنجاح'); }
+      const modalInstance = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+      if (modalInstance) modalInstance.hide();
+      form.reset();
+      const submitBtn = document.getElementById('addUserSubmitBtn');
+      if (submitBtn) submitBtn.disabled = true;
+      await fetchUsers();
+    } else {
+      let msg = 'فشل الإضافة';
+      try { const data = await res.json(); msg = data.message || msg; } catch {}
+      if (typeof showToast === 'function') { showToast(msg, 'danger'); } else { alert(msg); }
+    }
+  } catch (err) {
+    console.error('Add car rental office error:', err);
+    alert('حدث خطأ غير متوقع أثناء الإضافة');
+  }
+}
+
+function validateRealEstateIndividualForm() {
+  const form = document.getElementById('addRealEstateIndividualForm');
+  const submitBtn = document.getElementById('addUserSubmitBtn');
+  if (!form || !submitBtn) return;
+  const name = form.querySelector('[name="name"]')?.value?.trim();
+  const email = form.querySelector('[name="email"]')?.value?.trim();
+  const password = form.querySelector('[name="password"]')?.value || '';
+  const phone = form.querySelector('[name="phone"]')?.value?.trim();
+  const governorate = form.querySelector('[name="governorate"]')?.value?.trim();
+
+  const agent_name = form.querySelector('[name="agent_name"]')?.value?.trim();
+  const profile_image = form.querySelector('[name="profile_image"]')?.value?.trim();
+  const agent_id_front_image = form.querySelector('[name="agent_id_front_image"]')?.value?.trim();
+  const agent_id_back_image = form.querySelector('[name="agent_id_back_image"]')?.value?.trim();
+  const tax_card_front_image = form.querySelector('[name="tax_card_front_image"]')?.value?.trim();
+  const tax_card_back_image = form.querySelector('[name="tax_card_back_image"]')?.value?.trim();
+
+  const baseValid = !!(name && email && email.includes('@') && password.length >= 6 && phone && governorate);
+  const agentValid = !!(agent_name);
+  const imagesValid = !!(profile_image && agent_id_front_image && agent_id_back_image && tax_card_front_image && tax_card_back_image);
+  submitBtn.disabled = !(baseValid && agentValid && imagesValid);
+}
+
+async function submitRealEstateIndividualForm() {
+  const form = document.getElementById('addRealEstateIndividualForm');
+  if (!form) return;
+  const token = localStorage.getItem('token');
+  if (!token) { alert('يرجى تسجيل الدخول أولًا.'); window.location.href = '/login'; return; }
+
+  const payload = {
+    name: form.querySelector('[name="name"]').value.trim(),
+    email: form.querySelector('[name="email"]').value.trim(),
+    password: form.querySelector('[name="password"]').value,
+    phone: form.querySelector('[name="phone"]').value.trim(),
+    governorate: form.querySelector('[name="governorate"]').value.trim(),
+    user_type: 'real_estate_individual',
+
+    agent_name: form.querySelector('[name="agent_name"]').value.trim(),
+    profile_image: form.querySelector('[name="profile_image"]').value.trim(),
+    agent_id_front_image: form.querySelector('[name="agent_id_front_image"]').value.trim(),
+    agent_id_back_image: form.querySelector('[name="agent_id_back_image"]').value.trim(),
+    tax_card_front_image: form.querySelector('[name="tax_card_front_image"]').value.trim(),
+    tax_card_back_image: form.querySelector('[name="tax_card_back_image"]').value.trim(),
+
+    // موقع اختياري
+    agent_address: form.querySelector('[name="agent_address"]')?.value?.trim() || '',
+    agent_lat: form.querySelector('[name="agent_lat"]')?.value?.trim() || '',
+    agent_lng: form.querySelector('[name="agent_lng"]')?.value?.trim() || ''
+  };
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      if (typeof showToast === 'function') { showToast('تم إضافة السمسار بنجاح', 'success'); }
+      else { alert('تم إضافة السمسار بنجاح'); }
+      const modalInstance = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+      if (modalInstance) modalInstance.hide();
+      form.reset();
+      const submitBtn = document.getElementById('addUserSubmitBtn');
+      if (submitBtn) submitBtn.disabled = true;
+      await fetchUsers();
+    } else {
+      let msg = 'فشل الإضافة';
+      try { const data = await res.json(); msg = data.message || msg; } catch {}
+      if (typeof showToast === 'function') { showToast(msg, 'danger'); } else { alert(msg); }
+    }
+  } catch (err) {
+    console.error('Add real estate individual error:', err);
+    alert('حدث خطأ غير متوقع أثناء الإضافة');
+  }
+}
+
+// ===== تكامل خرائط جوجل لاختيار عنوان مكتب العقارات =====
+  const GOOGLE_MAPS_API_KEY = '{{ config('services.google.maps_api_key') }}';
+
+function ensureGoogleMapsLoaded(callback) {
+  try {
+    if (window.google && window.google.maps && window.google.maps.places) { callback(); return; }
+    const officeKeyNote = document.getElementById('officeMapsKeyNote');
+    const individualKeyNote = document.getElementById('individualMapsKeyNote');
+    if (!GOOGLE_MAPS_API_KEY) {
+      if (officeKeyNote) officeKeyNote.style.display = 'block';
+      if (individualKeyNote) individualKeyNote.style.display = 'block';
+      return;
+    }
+    if (window._gmapsLoading) {
+      window._gmapsCallbacks = window._gmapsCallbacks || [];
+      window._gmapsCallbacks.push(callback);
+      return;
+    }
+    window._gmapsLoading = true;
+    window._gmapsCallbacks = [callback];
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    s.async = true;
+    s.onload = () => {
+      window._gmapsLoading = false;
+      const cbs = window._gmapsCallbacks || [];
+      cbs.forEach(cb => { try { cb(); } catch (_) {} });
+      window._gmapsCallbacks = [];
+    };
+    s.onerror = () => { window._gmapsLoading = false; if (keyNote) keyNote.style.display = 'block'; };
+    document.head.appendChild(s);
+  } catch (e) { console.error('ensureGoogleMapsLoaded error', e); }
+}
+
+function openOfficeMapPicker() {
+  const overlay = document.getElementById('officeMapPicker');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  ensureGoogleMapsLoaded(initOfficeMap);
+}
+
+function closeOfficeMapPicker() {
+  const overlay = document.getElementById('officeMapPicker');
+  if (!overlay) return;
+  overlay.style.display = 'none';
+}
+
+function initOfficeMap() {
+  try {
+    const mapEl = document.getElementById('officeMap');
+    const searchInput = document.getElementById('officeMapSearch');
+    const addressInput = document.getElementById('officeAddressInput');
+    if (!mapEl || !searchInput || !addressInput || !(window.google && window.google.maps)) return;
+
+    const center = { lat: 30.0444, lng: 31.2357 }; // القاهرة
+    const map = new google.maps.Map(mapEl, { center, zoom: 12, mapTypeControl: false, streetViewControl: false });
+    let marker = null;
+    const placeMarker = (latLng) => {
+      if (marker) marker.setMap(null);
+      marker = new google.maps.Marker({ position: latLng, map });
+      map.panTo(latLng);
+    };
+
+    if (google.maps.places) {
+      const ac = new google.maps.places.Autocomplete(searchInput, {
+        fields: ['geometry', 'formatted_address'],
+        componentRestrictions: { country: ['eg'] }
+      });
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace();
+        if (!place || !place.geometry) return;
+        const loc = place.geometry.location;
+        const latLng = { lat: loc.lat(), lng: loc.lng() };
+        placeMarker(latLng);
+        addressInput.value = place.formatted_address || '';
+      });
+    }
+
+    map.addListener('click', async (e) => {
+      const latLng = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      placeMarker(latLng);
+      try {
+        const geocoder = new google.maps.Geocoder();
+        const result = await geocoder.geocode({ location: latLng });
+        const formatted = result.results?.[0]?.formatted_address || '';
+        if (formatted) addressInput.value = formatted;
+      } catch (_) {}
+    });
+  } catch (err) { console.error('initOfficeMap error', err); }
+}
+
+// ===== تكامل خرائط جوجل لاختيار عنوان السمسار (اختياري) =====
+function openIndividualMapPicker() {
+  const overlay = document.getElementById('individualMapPicker');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  ensureGoogleMapsLoaded(initIndividualMap);
+}
+
+function closeIndividualMapPicker() {
+  const overlay = document.getElementById('individualMapPicker');
+  if (!overlay) return;
+  overlay.style.display = 'none';
+}
+
+function initIndividualMap() {
+  try {
+    const mapEl = document.getElementById('individualMap');
+    const searchInput = document.getElementById('individualMapSearch');
+    const addressInput = document.getElementById('individualAddressInput');
+    const latInput = document.querySelector('#addRealEstateIndividualForm [name="agent_lat"]');
+    const lngInput = document.querySelector('#addRealEstateIndividualForm [name="agent_lng"]');
+    if (!mapEl || !searchInput || !addressInput || !(window.google && window.google.maps)) return;
+
+    const center = { lat: 30.0444, lng: 31.2357 }; // القاهرة
+    const map = new google.maps.Map(mapEl, { center, zoom: 12, mapTypeControl: false, streetViewControl: false });
+    let marker = null;
+    const placeMarker = (latLng) => {
+      if (marker) marker.setMap(null);
+      marker = new google.maps.Marker({ position: latLng, map });
+      map.panTo(latLng);
+      if (latInput) latInput.value = String(latLng.lat);
+      if (lngInput) lngInput.value = String(latLng.lng);
+    };
+
+    if (google.maps.places) {
+      const ac = new google.maps.places.Autocomplete(searchInput, {
+        fields: ['geometry', 'formatted_address'],
+        componentRestrictions: { country: ['eg'] }
+      });
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace();
+        if (!place || !place.geometry) return;
+        const loc = place.geometry.location;
+        const latLng = { lat: loc.lat(), lng: loc.lng() };
+        placeMarker(latLng);
+        addressInput.value = place.formatted_address || '';
+      });
+    }
+
+    map.addListener('click', async (e) => {
+      const latLng = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      placeMarker(latLng);
+      try {
+        const geocoder = new google.maps.Geocoder();
+        const result = await geocoder.geocode({ location: latLng });
+        const formatted = result.results?.[0]?.formatted_address || '';
+        if (formatted) addressInput.value = formatted;
+      } catch (_) {}
+    });
+  } catch (err) { console.error('initIndividualMap error', err); }
+}
 </script>
 @endsection

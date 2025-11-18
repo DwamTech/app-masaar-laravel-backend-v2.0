@@ -68,6 +68,8 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
+        // Google Maps API Key (استخدامه من خلال config لضمان العمل مع config:cache)
+        'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
 ];

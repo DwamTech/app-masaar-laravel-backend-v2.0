@@ -3,8 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - لوحة التحكم</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* فرض خط Cairo على صفحة الأدمن بالكامل */
+        html, body { font-family: 'Cairo', sans-serif !important; }
+        * { font-family: inherit !important; }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans">
     <!-- Header -->
@@ -25,7 +32,17 @@
             <nav>
                 <ul>
                     <li><a href="{{ route('dashboard') }}" class="block py-2 px-4 hover:bg-gray-700 rounded">الرئيسية</a></li>
-                    <!-- إضافة المزيد من الروابط لاحقًا -->
+                    <li class="mt-4">
+                        <div class="text-gray-300 text-sm mb-2">إدارة العقارات</div>
+                        <ul class="space-y-1">
+                            <li>
+                                <a href="{{ route('admin.properties.index') }}" class="block py-2 px-4 hover:bg-gray-700 rounded">كل العقارات</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('admin.properties.create') }}" class="block py-2 px-4 hover:bg-gray-700 rounded">إضافة عقار</a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </nav>
         </aside>
