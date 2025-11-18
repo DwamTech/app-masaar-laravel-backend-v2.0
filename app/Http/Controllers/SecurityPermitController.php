@@ -96,7 +96,7 @@ class SecurityPermitController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'individual_fee' => $individualFee,
                 'total_amount' => $totalAmount,
-                'notes' => $validated['notes'],
+                'notes' => $validated['notes'] ?? null,
                 'status' => 'new',
                 'payment_status' => 'pending',
             ]);
