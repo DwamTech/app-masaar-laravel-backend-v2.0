@@ -319,6 +319,7 @@ class CarController extends Controller
         ]);
 
         $car = Car::findOrFail($id);
+        $oldState = $car->is_reviewed; // للتحقق من التغيير
         $newState = $request->has('is_reviewed') ? (bool) $request->boolean('is_reviewed') : true;
 
         $car->is_reviewed = $newState;
@@ -353,9 +354,53 @@ class CarController extends Controller
             }
         }
 
+        // إرسال إشعار لمكتب التأجير عند قبول أو رفض السيارة
+        if ($car->owner_type === 'office' && $oldState !== $newState) {
+            try {
+                $officeOwner = $car->carRental->user; // مستخدم صاحب مكتب التأجير
+                if ($officeOwner) {
+                    if ($newState === true) {
+                        // قبول السيارة
+                        $title = 'تم قبول السيارة';
+                        $msg   = sprintf(
+                            'تم اعتماد السيارة من قبل الإدارة: النوع %s، الموديل %s، رقم اللوحة %s. أصبحت الآن متاحة للإيجار.',
+                            (string)($car->car_type ?? 'غير محدد'),
+                            (string)($car->car_model ?? 'غير محدد'),
+                            (string)($car->car_plate_number ?? 'غير محدد')
+                        );
+                        $notifType = 'office_car_approved';
+                    } else {
+                        // رفض السيارة
+                        $title = 'تم رفض السيارة';
+                        $msg   = sprintf(
+                            'تم رفض السيارة من قبل الإدارة: النوع %s، الموديل %s، رقم اللوحة %s. يرجى مراجعة البيانات وإعادة المحاولة.',
+                            (string)($car->car_type ?? 'غير محدد'),
+                            (string)($car->car_model ?? 'غير محدد'),
+                            (string)($car->car_plate_number ?? 'غير محدد')
+                        );
+                        $notifType = 'office_car_rejected';
+                    }
+
+                    $data  = [
+                        'type' => $notifType,
+                        'car_id' => (string)$car->id,
+                        'owner_type' => $car->owner_type,
+                        'is_reviewed' => $newState ? '1' : '0',
+                    ];
+                    Notifier::send($officeOwner, $notifType, $title, $msg, $data, null);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to send office car notification', [
+                    'car_id' => $car->id,
+                    'new_state' => $newState,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return response()->json([
             'status' => true,
-            'message' => $newState ? 'تم اعتماد العربية بنجاح' : 'تم إعادة العربية إلى حالة تحت المراجعة',
+            'message' => $newState ? 'تم اعتماد العربية بنجاح' : 'تم رفض العربية',
             'car' => $car,
         ]);
     }

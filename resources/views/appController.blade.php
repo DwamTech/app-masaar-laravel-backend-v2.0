@@ -1462,7 +1462,7 @@ function createCarCardHTML(c, isApproved, img) {
           <button type="button"
             class="modern-favorite-btn ${isApproved ? 'active' : ''}"
             data-id="${c.id}" data-kind="car">
-            <i class="bi ${isApproved ? 'bi-check2-circle' : 'bi-check2'}"></i> ${isApproved ? 'معتمدة' : 'اعتماد'}
+            <i class="bi ${isApproved ? 'bi-x-circle' : 'bi-check2'}"></i> ${isApproved ? 'رفض' : 'قبول'}
           </button>
         </div>
       </div>
@@ -1483,7 +1483,7 @@ function updateCarCard(col, c, isApproved, img) {
   const btn = col.querySelector('.modern-favorite-btn');
   if (btn) {
     btn.classList.toggle('active', isApproved);
-    btn.innerHTML = `<i class="bi ${isApproved ? 'bi-check2-circle' : 'bi-check2'}"></i> ${isApproved ? 'معتمدة' : 'اعتماد'}`;
+    btn.innerHTML = `\u003ci class=\"bi ${isApproved ? 'bi-x-circle' : 'bi-check2'}\"\u003e\u003c/i\u003e ${isApproved ? 'رفض' : 'قبول'}`;
     btn.dataset.id = c.id;
     btn.dataset.kind = 'car';
   }
