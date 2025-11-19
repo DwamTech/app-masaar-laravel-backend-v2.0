@@ -4,6 +4,48 @@
 
 @section('content')
 <h2 class="mb-4">إدارة التصاريح الأمنية</h2>
+
+<!-- قسم إعدادات قيمة التصريح -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-cog me-2"></i>إعدادات التصريح الأمني
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-end">
+            <div class="col-md-4 mb-3 mb-md-0">
+                <label for="individualFee" class="form-label fw-bold">
+                    <i class="fas fa-money-bill-wave me-2 text-success"></i>قيمة الطلب (للفرد الواحد)
+                </label>
+                <div class="input-group">
+                    <input 
+                        type="number" 
+                        class="form-control form-control-lg" 
+                        id="individualFee" 
+                        placeholder="أدخل القيمة"
+                        min="0"
+                        step="0.01"
+                    >
+                    <span class="input-group-text">جنيه</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button 
+                    class="btn btn-success btn-lg w-100" 
+                    onclick="saveIndividualFee()"
+                    id="saveFeeBtn"
+                >
+                    <i class="fas fa-save me-2"></i>حفظ التعديلات
+                </button>
+            </div>
+        </div>
+        
+        <!-- رسالة النجاح/الخطأ -->
+        <div id="feeMessage" class="mt-3" style="display: none;"></div>
+    </div>
+</div>
+
 <div id="permitsContent"></div>
 
 <!-- Modal لعرض الصور -->
@@ -20,6 +62,97 @@
 const baseUrl = window.location.origin; // تم التعديل: استخدام أصل الموقع لتجنب Mixed Content
 let permits = [];
 let pollingInterval = null;
+let currentIndividualFee = 0;
+
+// جلب قيمة التصريح الحالية
+async function fetchIndividualFee() {
+    try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Accept': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch(`${baseUrl}/api/admin/security-permits-settings`, { headers });
+        const data = await res.json();
+        
+        if (data.status && data.settings) {
+            // البحث عن individual_fee في الإعدادات
+            const allSettings = Object.values(data.settings).flat();
+            const feeSetting = allSettings.find(s => s.key === 'individual_fee');
+            
+            if (feeSetting) {
+                currentIndividualFee = parseFloat(feeSetting.value);
+                document.getElementById('individualFee').value = currentIndividualFee;
+            }
+        }
+    } catch (e) {
+        console.error('Error fetching individual fee:', e);
+    }
+}
+
+// حفظ قيمة التصريح الجديدة
+async function saveIndividualFee() {
+    const feeInput = document.getElementById('individualFee');
+    const newFee = parseFloat(feeInput.value);
+    
+    if (isNaN(newFee) || newFee < 0) {
+        showFeeMessage('يرجى إدخال قيمة صحيحة', 'danger');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('saveFeeBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+    
+    try {
+        const token = localStorage.getItem('token');
+        const headers = { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch(`${baseUrl}/api/admin/security-permits-settings`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ individual_fee: newFee })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.status !== false) {
+            currentIndividualFee = newFee;
+            showFeeMessage('تم حفظ قيمة التصريح بنجاح ✓', 'success');
+            // تحديث القيمة في الصفحة
+            feeInput.value = newFee;
+        } else {
+            showFeeMessage(data.message || 'حدث خطأ أثناء الحفظ', 'danger');
+        }
+    } catch (e) {
+        showFeeMessage('حدث خطأ في الاتصال بالخادم', 'danger');
+        console.error('Error saving individual fee:', e);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    }
+}
+
+// عرض رسالة نجاح أو خطأ
+function showFeeMessage(message, type) {
+    const msgDiv = document.getElementById('feeMessage');
+    msgDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    msgDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+    `;
+    msgDiv.style.display = 'block';
+    
+    // إخفاء الرسالة تلقائياً بعد 5 ثوان
+    setTimeout(() => {
+        msgDiv.style.display = 'none';
+    }, 5000);
+}
+
 
 function openImageModal(src, title = 'عرض الصورة') {
     // إزالة أي نافذة سابقة
@@ -303,6 +436,7 @@ function stopPolling() {
 
 // تشغيل عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
+    fetchIndividualFee(); // جلب قيمة التصريح الحالية
     fetchPermits(); // تحميل أولي
     startPolling(); // بدء التحديث التلقائي
 });
