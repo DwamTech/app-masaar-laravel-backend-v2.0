@@ -838,6 +838,15 @@
     box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
 }
 
+.modern-favorite-btn.btn-reject {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.modern-favorite-btn.btn-reject:hover {
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+}
+
 .modern-favorite-btn::before {
     content: '';
     position: absolute;
@@ -1459,11 +1468,18 @@ function createCarCardHTML(c, isApproved, img) {
           </div>
         </div>
         <div class="modern-actions">
-          <button type="button"
-            class="modern-favorite-btn ${isApproved ? 'active' : ''}"
-            data-id="${c.id}" data-kind="car">
-            <i class="bi ${isApproved ? 'bi-x-circle' : 'bi-check2'}"></i> ${isApproved ? 'رفض' : 'قبول'}
-          </button>
+          <div class="d-flex gap-2">
+            <button type="button"
+              class="modern-favorite-btn flex-fill ${isApproved ? 'active' : ''}"
+              data-id="${c.id}" data-kind="car" data-action="approve">
+              <i class="bi bi-check2-circle"></i> قبول
+            </button>
+            <button type="button"
+              class="modern-favorite-btn flex-fill ${!isApproved ? '' : 'btn-reject'}"
+              data-id="${c.id}" data-kind="car" data-action="reject">
+              <i class="bi bi-x-circle"></i> رفض
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1480,12 +1496,20 @@ function updateCarCard(col, c, isApproved, img) {
     if (img) { imgEl.src = img; } else { imgEl.remove(); }
   }
 
-  const btn = col.querySelector('.modern-favorite-btn');
-  if (btn) {
-    btn.classList.toggle('active', isApproved);
-    btn.innerHTML = `\u003ci class=\"bi ${isApproved ? 'bi-x-circle' : 'bi-check2'}\"\u003e\u003c/i\u003e ${isApproved ? 'رفض' : 'قبول'}`;
-    btn.dataset.id = c.id;
-    btn.dataset.kind = 'car';
+  // تحديث زر القبول
+  const approveBtn = col.querySelector('.modern-favorite-btn[data-action="approve"]');
+  if (approveBtn) {
+    approveBtn.classList.toggle('active', isApproved);
+    approveBtn.dataset.id = c.id;
+    approveBtn.dataset.kind = 'car';
+  }
+  
+  // تحديث زر الرفض
+  const rejectBtn = col.querySelector('.modern-favorite-btn[data-action="reject"]');
+  if (rejectBtn) {
+    rejectBtn.classList.toggle('btn-reject', !isApproved);
+    rejectBtn.dataset.id = c.id;
+    rejectBtn.dataset.kind = 'car';
   }
 }
 
@@ -1640,16 +1664,27 @@ document.addEventListener('click', async (e) => {
 
   const id = btn.dataset.id;
   const kind = btn.dataset.kind; // 'restaurant' | 'property' | 'car' | 'driver-car'
+  const action = btn.dataset.action; // 'approve' | 'reject' (للسيارات فقط)
   if (!id || !kind) return;
 
   try {
     const token = getTokenOrThrow();
-    const willSet = btn.classList.contains('active') ? 0 : 1;
-
+    
     const isRestaurant = kind === 'restaurant';
     const isProperty = kind === 'property';
     const isCar = kind === 'car';
     const isDriverCar = kind === 'driver-car';
+    
+    let willSet;
+    
+    // للسيارات: نستخدم data-action لتحديد القيمة
+    if ((isCar || isDriverCar) && action) {
+      willSet = action === 'approve' ? 1 : 0;
+    } else {
+      // للمطاعم والعقارات: toggle كالسابق
+      willSet = btn.classList.contains('active') ? 0 : 1;
+    }
+
     const url = isRestaurant
       ? `${baseUrl}/api/users/${id}`
       : (isProperty
@@ -1687,11 +1722,13 @@ document.addEventListener('click', async (e) => {
     } else if (kind === 'car') {
       const idx = cars.findIndex(c => String(c.id) === String(id));
       if (idx > -1) cars[idx].is_reviewed = (willSet === 1);
-      updateCarCard(document.getElementById(`car-card-${id}`), cars[idx], (willSet === 1));
+      updateCarCard(document.getElementById(`car-card-${id}`), cars[idx], (willSet === 1),
+        cars[idx]?.car_image_front || cars[idx]?.car_image_back || '');
     } else if (kind === 'driver-car') {
       const idx = driverCars.findIndex(c => String(c.id) === String(id));
       if (idx > -1) driverCars[idx].is_reviewed = (willSet === 1);
-      updateDriverCarCard(document.getElementById(`driver-car-card-${id}`), driverCars[idx], (willSet === 1));
+      updateDriverCarCard(document.getElementById(`driver-car-card-${id}`), driverCars[idx], (willSet === 1),
+        driverCars[idx]?.car_image_front || driverCars[idx]?.car_image_back || '');
     }
   } catch (err) {
     console.error('[CONTROL] Toggle favorite error:', err);
