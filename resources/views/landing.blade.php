@@ -14,7 +14,11 @@
     <style>
         /* فرض خط Cairo على الصفحة بالكامل */
         html, body { font-family: 'Cairo', sans-serif !important; }
+        /* استثناء أيقونات Font Awesome من font-family override */
         * { font-family: inherit !important; }
+        .fas, .far, .fab, .fa, .fal, .fad, .fa-solid, .fa-regular, .fa-brands { 
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; 
+        }
     </style>
 </head>
 <body>
