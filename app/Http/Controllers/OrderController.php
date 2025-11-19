@@ -166,32 +166,102 @@ class OrderController extends Controller
     {
         $order->load(['user', 'restaurant.user']);
         $customer = $order->user;
-        $restaurantOwner = $order->restaurant->user;
+        $restaurant = $order->restaurant;
+        $restaurantOwner = $restaurant?->user;
+        $restaurantName = $restaurant?->restaurant_name ?? 'المطعم';
 
         try {
             switch ($newStatus) {
                 case 'pending':
-                    if ($customer) Notifier::send($customer, 'order_under_review', 'تم إرسال طلبك', 'تم إرسال طلبك رقم ' . $order->order_number . ' وجاري مراجعته من قبل المطعم.');
-                    if ($restaurantOwner) Notifier::send($restaurantOwner, 'new_order_for_restaurant', 'لديك طلب جديد', 'يوجد طلب جديد برقم ' . $order->order_number . ' بانتظار المراجعة والقبول أو الرفض.');
+                    if ($customer) {
+                        Notifier::send(
+                            $customer,
+                            'order_pending',
+                            'تم إرسال طلبك',
+                            "طلبك رقم #{$order->order_number} من {$restaurantName} قيد المراجعة."
+                        );
+                    }  
+                    if ($restaurantOwner) {
+                        Notifier::send(
+                            $restaurantOwner,
+                            'new_order_restaurant',
+                            'طلب جديد!',
+                            "لديك طلب جديد رقم #{$order->order_number} من {($customer?->name ?: 'العميل')}."
+                        );
+                    }
                     break;
+
                 case 'accepted_by_admin':
-                    if ($customer) Notifier::send($customer, 'order_accepted', 'تم قبول طلبك!', 'تمت الموافقة على طلبك رقم ' . $order->order_number . ' وجاري إرساله للمطعم.');
-                    if ($restaurantOwner) Notifier::send($restaurantOwner, 'new_order_for_restaurant', 'لديك طلب جديد!', 'يوجد طلب جديد برقم ' . $order->order_number . ' بانتظار التنفيذ.');
+                    if ($customer) {
+                        Notifier::send(
+                            $customer,
+                            'order_approved_admin',
+                            'تم قبول طلبك',
+                            "تمت الموافقة على طلبك رقم #{$order->order_number} وتم إرساله إلى {$restaurantName}."
+                        );
+                    }
+                    if ($restaurantOwner) {
+                        Notifier::send(
+                            $restaurantOwner,
+                            'new_order_restaurant',
+                            'طلب جديد معتمد',
+                            "لديك طلب معتمد رقم #{$order->order_number} بانتظار التنفيذ."
+                        );
+                    }
                     break;
+
                 case 'rejected_by_admin':
-                    $reason = $order->rejection_reason ? ' السبب: ' . $order->rejection_reason : '';
-                    if ($customer) Notifier::send($customer, 'order_rejected', 'تم رفض طلبك', 'نأسف، لم نتمكن من قبول طلبك.' . $reason);
+                    $reason = $order->rejection_reason ? "\n\nالسبب: {$order->rejection_reason}" : '';
+                    if ($customer) {
+                        Notifier::send(
+                            $customer,
+                            'order_rejected_admin',
+                            'تم رفض طلبك',
+                            "نأسف، تم رفض طلبك رقم #{$order->order_number}.{$reason}"
+                        );
+                    }
                     break;
+
                 case 'processing':
-                    // نُعدّ بدء التجهيز كقبول من المطعم ونبلغ المستخدم بذلك
-                    if ($customer) Notifier::send($customer, 'order_accepted', 'تم قبول طلبك', 'تم قبول طلبك رقم ' . $order->order_number . ' وسيبدأ المطعم في التجهيز.');
+                    if ($customer) {
+                        Notifier::send(
+                            $customer,
+                            'order_processing',
+                            'جاري تحضير طلبك',
+                            "{$restaurantName} يقوم الآن بتحضير طلبك رقم #{$order->order_number}."
+                        );
+                    }
                     break;
+
                 case 'completed':
-                    if ($customer) Notifier::send($customer, 'order_completed', 'طلبك جاهز!', 'أصبح طلبك رقم ' . $order->order_number . ' جاهزاً للاستلام.');
+                    if ($customer) {
+                        Notifier::send(
+                            $customer,
+                            'order_completed',
+                            'طلبك جاهز! 🎉',
+                            "طلبك رقم #{$order->order_number} من {$restaurantName} جاهز للاستلام الآن."
+                        );
+                    }
+                    if ($restaurantOwner) {
+                        Notifier::send(
+                            $restaurantOwner,
+                            'order_completed_restaurant',
+                            'تم إكمال الطلب',
+                            "تم إكمال الطلب رقم #{$order->order_number} بنجاح."
+                        );
+                    }
                     break;
+
                 case 'rejected_by_restaurant':
-                    $reason = $order->rejection_reason ? ' السبب: ' . $order->rejection_reason : '';
-                    if ($customer) Notifier::send($customer, 'order_rejected', 'تم رفض طلبك', 'نأسف، قام المطعم برفض طلبك رقم ' . $order->order_number . '.' . $reason);
+                    $reason = $order->rejection_reason ? "\n\nالسبب: {$order->rejection_reason}" : '';
+                    if ($customer) {
+                        Notifier::send(
+                            $customer,
+                            'order_rejected_restaurant',
+                            'تم رفض طلبك',
+                            "نأسف، {$restaurantName} رفض طلبك رقم #{$order->order_number}.{$reason}"
+                        );
+                    }
                     break;
             }
         } catch (\Throwable $e) {

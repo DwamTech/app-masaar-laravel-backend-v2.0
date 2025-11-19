@@ -64,6 +64,31 @@ class AppointmentController extends Controller
             Log::error('Failed to send new appointment notification to admin: ' . $e->getMessage());
         }
 
+        // إشعار لمقدم الخدمة بوجود طلب موعد جديد
+        try {
+            $provider = \App\Models\User::find($property->user_id);
+            if ($provider) {
+                $customerName = $request->user()->name ?: 'العميل';
+                $timeInfo = '';
+                if (isset($validated['preferred_from']) && isset($validated['preferred_to'])) {
+                    $timeInfo = "\nالنافذة الزمنية المفضلة: من " . $validated['preferred_from'] . " إلى " . $validated['preferred_to'];
+                } elseif (isset($validated['date'])) {
+                    $timeInfo = "\nالتاريخ المطلوب: " . $validated['date'];
+                }
+                
+                Notifier::send(
+                    $provider, 
+                    'new_appointment_request', 
+                    'طلب معاينة جديد لعقارك',
+                    'قدم العميل "' . $customerName . '" طلب معاينة للعقار "' . $property->title . '".' . $timeInfo,
+                    ['appointment_id' => (string)$appointment->id], 
+                    'app://provider/appointments/' . $appointment->id
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to send new appointment notification to provider: ' . $e->getMessage());
+        }
+
         return response()->json([
             'status'      => true,
             'message'     => 'تم إرسال طلب المعاينة للإدارة.',
