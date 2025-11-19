@@ -1496,7 +1496,7 @@ function updateCarCard(col, c, isApproved, img) {
     if (img) { imgEl.src = img; } else { imgEl.remove(); }
   }
 
-  // تحديث زر القبول
+  // تحديث زر القبول - يظهر active عندما تكون السيارة معتمدة
   const approveBtn = col.querySelector('.modern-favorite-btn[data-action="approve"]');
   if (approveBtn) {
     approveBtn.classList.toggle('active', isApproved);
@@ -1504,10 +1504,12 @@ function updateCarCard(col, c, isApproved, img) {
     approveBtn.dataset.kind = 'car';
   }
   
-  // تحديث زر الرفض
+  // تحديث زر الرفض - دائماً أحمر (btn-reject)
   const rejectBtn = col.querySelector('.modern-favorite-btn[data-action="reject"]');
   if (rejectBtn) {
-    rejectBtn.classList.toggle('btn-reject', !isApproved);
+    if (!rejectBtn.classList.contains('btn-reject')) {
+      rejectBtn.classList.add('btn-reject');
+    }
     rejectBtn.dataset.id = c.id;
     rejectBtn.dataset.kind = 'car';
   }
