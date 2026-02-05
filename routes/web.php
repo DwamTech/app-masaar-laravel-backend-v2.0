@@ -25,6 +25,12 @@ Route::post('/logout', function (Request $request) {
 Route::get('/', function () {
     return view('landing');
 })->name('landing');
+Route::get('/terms', function () {
+    return view('terms');
+})->name('terms');
+Route::get('/privacy', function () {
+    return view('privacy');
+})->name('privacy');
 // صفحة الداشبورد
 Route::get('/dashboard', function () {
     return view('dashboard');

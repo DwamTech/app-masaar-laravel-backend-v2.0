@@ -564,6 +564,10 @@
                 <a href="#"><i class="fab fa-instagram"></i></a>
                 <a href="#"><i class="fab fa-linkedin"></i></a>
             </div>
+            <div class="d-flex justify-content-center gap-4 flex-wrap mt-4">
+                <a href="{{ route('terms') }}" class="text-white-50 text-decoration-none">الشروط والأحكام</a>
+                <a href="{{ route('privacy') }}" class="text-white-50 text-decoration-none">سياسة الخصوصية</a>
+            </div>
             <hr class="my-4" style="opacity: 0.3;">
             
         </div>
