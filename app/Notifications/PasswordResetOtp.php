@@ -8,9 +8,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Carbon\Carbon;
 
-class PasswordResetOtp extends Notification implements ShouldQueue
+class PasswordResetOtp extends Notification
 {
-    use Queueable;
+    // use Queueable; // تم تعطيل Queue لإرسال البريد مباشرة
 
     protected $otp;
     protected $expiresAt;

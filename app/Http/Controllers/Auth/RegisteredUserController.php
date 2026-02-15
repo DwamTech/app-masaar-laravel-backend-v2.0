@@ -185,24 +185,53 @@ class RegisteredUserController extends Controller
             $otpResult = $this->otpService->generateEmailVerificationOtp($user);
             
             if ($otpResult['success']) {
-                $user->notify(new EmailVerificationOtp(
-                    $otpResult['otp'],
-                    $otpResult['expires_at'],
-                    $user->name
-                ));
+                try {
+                    $user->notify(new EmailVerificationOtp(
+                        $otpResult['otp'],
+                        $otpResult['expires_at'],
+                        $user->name
+                    ));
+                    
+                    Log::info('Email verification OTP sent successfully', [
+                        'user_id' => $user->id,
+                        'email' => $user->email
+                    ]);
+                    
+                    return response()->json([
+                        'status' => true,
+                        'message' => 'تم التسجيل بنجاح. يرجى تأكيد بريدك الإلكتروني لتفعيل الحساب.',
+                        'user_id' => $user->id,
+                        'user_type' => $user->user_type,
+                        'email_verification_required' => true,
+                        'otp_expires_at' => $otpResult['expires_at']->toISOString()
+                    ], 201);
+                } catch (\Exception $notifyException) {
+                    Log::error('Failed to send email notification', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'error' => $notifyException->getMessage(),
+                        'trace' => $notifyException->getTraceAsString()
+                    ]);
+                    
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'تم التسجيل ولكن فشل في إرسال رمز التحقق. يرجى طلب رمز جديد.',
+                        'error_details' => $notifyException->getMessage(),
+                        'user_id' => $user->id,
+                        'user_type' => $user->user_type,
+                        'email_verification_required' => true
+                    ], 201);
+                }
+            } else {
+                Log::error('Failed to generate OTP', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'otp_result' => $otpResult
+                ]);
                 
                 return response()->json([
-                    'status' => true,
-                    'message' => 'تم التسجيل بنجاح. يرجى تأكيد بريدك الإلكتروني لتفعيل الحساب.',
-                    'user_id' => $user->id,
-                    'user_type' => $user->user_type,
-                    'email_verification_required' => true,
-                    'otp_expires_at' => $otpResult['expires_at']->toISOString()
-                ], 201);
-            } else {
-                return response()->json([
                     'status' => false,
-                    'message' => 'تم التسجيل ولكن فشل في إرسال رمز التحقق. يرجى طلب رمز جديد.',
+                    'message' => 'تم التسجيل ولكن فشل في إنشاء رمز التحقق. يرجى طلب رمز جديد.',
                     'user_id' => $user->id,
                     'user_type' => $user->user_type,
                     'email_verification_required' => true
@@ -212,12 +241,14 @@ class RegisteredUserController extends Controller
             Log::error('Failed to send email verification OTP during registration', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return response()->json([
                 'status' => false,
                 'message' => 'تم التسجيل ولكن فشل في إرسال رمز التحقق. يرجى طلب رمز جديد.',
+                'error_details' => $e->getMessage(),
                 'user_id' => $user->id,
                 'user_type' => $user->user_type,
                 'email_verification_required' => true
